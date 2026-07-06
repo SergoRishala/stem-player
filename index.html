@@ -708,6 +708,11 @@ function resize(){
 window.addEventListener('resize', resize);
 resize();
 
+// ---------- Object refs (declared early — several functions below reference these) ----------
+const glassPanelEl = document.getElementById('glassPanel');
+const stemGroupEl = document.getElementById('stemGroup');
+const songTitleEl = document.getElementById('songTitle');
+
 const WAVE_COLORS = [
   {top:'#ffffff', bottom:'#e4e2db', stroke:'rgba(255,255,255,0.9)'},
   {top:'#d2d0c8', bottom:'#a8a59a', stroke:'rgba(255,255,255,0.5)'},
@@ -1207,11 +1212,6 @@ seekRange.addEventListener('input', (e)=>{
 seekRange.addEventListener('pointerdown', (e)=> e.stopPropagation());
 playPauseBtn.addEventListener('pointerdown', (e)=> e.stopPropagation());
 
-// ---------- Object refs ----------
-const glassPanelEl = document.getElementById('glassPanel');
-const stemGroupEl = document.getElementById('stemGroup');
-const songTitleEl = document.getElementById('songTitle');
-
 // ---------- Import menu ----------
 // "Один файл" (auto-split) and "YouTube" both need a Demucs backend that isn't deployed
 // alongside this static site — they show a message pointing at "Останні треки"/"4 готові семпли"
@@ -1541,4 +1541,3 @@ document.getElementById('toggleLastTracksBtn').addEventListener('change', (e)=>{
 </script>
 </body>
 </html>
-
