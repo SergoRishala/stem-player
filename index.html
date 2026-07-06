@@ -141,21 +141,21 @@
   #importMenu button:hover{ background: rgba(255,255,255,0.1); }
   #importMenu button small{ display:block; color:var(--ink-soft); font-size:10px; margin-top:2px; }
 
-  /* ---------- song title (top center) ---------- */
+  /* ---------- song title (own row, below the top icon row — never overlaps them) ---------- */
   #songTitle{
-    position:fixed; top: clamp(10px,2vw,18px); left:50%;
+    position:fixed; top: calc(clamp(10px,2vw,18px) + 42px + 10px); left:50%;
     transform: translate(calc(-50% + var(--dx,0px)), var(--dy,0px));
-    z-index:25; max-width:44vw;
-    padding:10px 18px; border-radius:999px;
+    z-index:20; max-width:min(84vw, 420px);
+    padding:9px 16px; border-radius:16px;
     background: rgba(20,20,18,0.55);
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
     border:1px solid rgba(255,255,255,0.16);
     font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.03em;
     color:var(--ink-soft);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    text-align:center;
-    touch-action:none;
+    white-space:normal; overflow-wrap:break-word; word-break:break-word;
+    text-align:center; line-height:1.4;
+    touch-action:none; cursor:pointer;
   }
   #songTitle b{ color:var(--ink); font-weight:500; }
 
@@ -973,14 +973,25 @@ async function loadStemSet(basePath, { loop=false, resume=true, onProgress=null 
   resetStemAudio();
   const stems = stemFilesFor(basePath);
   let done = 0;
+  const failures = [];
   await Promise.all(stems.map(async s=>{
-    const resp = await fetch(s.url);
-    if(!resp.ok) throw new Error(`не вдалося завантажити ${s.url}`);
-    const arr = await resp.arrayBuffer();
-    await attachStemFromArrayBuffer(STEM_ORDER.indexOf(s.key), arr, s.label);
-    done++;
-    if(onProgress) onProgress(done, stems.length);
+    try{
+      const resp = await fetch(s.url);
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      const arr = await resp.arrayBuffer();
+      await attachStemFromArrayBuffer(STEM_ORDER.indexOf(s.key), arr, s.label);
+      done++;
+      if(onProgress) onProgress(done, stems.length);
+    } catch(err){
+      console.error('Не вдалося завантажити', s.url, err);
+      failures.push(`${s.url} — ${err.message || err}`);
+    }
   }));
+  if(failures.length){
+    const e = new Error(failures.join(' · '));
+    e.isStemLoadError = true;
+    throw e;
+  }
   finalizeAudioLoad();
   loopCurrent = loop;
 }
@@ -988,16 +999,18 @@ async function loadStemSet(basePath, { loop=false, resume=true, onProgress=null 
 // Loads the waiting-room track from /loading/ the moment the page opens. Doesn't autoplay
 // (browsers block audio before a user gesture) — it just gets ready so Play works instantly.
 async function preloadLoadingTrack(){
+  songTitleEl.innerHTML = 'Завантаження треку очікування…';
   try{
     currentSongName = 'Трек очікування';
     await loadStemSet('loading', { loop:true, resume:false });
     songTitleEl.innerHTML = `Готово: <b>трек очікування</b> · натисни ▶`;
   } catch(err){
     console.error(err);
-    songTitleEl.innerHTML = `Трек очікування недоступний`;
+    songTitleEl.innerHTML = `Не вдалося завантажити: <b>${err.message || err}</b> · тапни, щоб спробувати ще раз`;
   }
 }
 window.addEventListener('load', preloadLoadingTrack);
+songTitleEl.addEventListener('click', ()=>{ if(!audioLoaded) preloadLoadingTrack(); });
 
 // Loads one of the last 5 separated songs from /last/{id}/ and plays it immediately
 // (this is always triggered by a click, so autoplay is allowed).
@@ -1012,7 +1025,7 @@ async function loadLastSong(id, name){
     });
   } catch(err){
     console.error(err);
-    songTitleEl.innerHTML = `Помилка завантаження треку`;
+    songTitleEl.innerHTML = `Не вдалося завантажити «${name}»: <b>${err.message || err}</b>`;
     return;
   }
   songTitleEl.innerHTML = `Зараз: <b>${name}</b>`;
@@ -1528,3 +1541,4 @@ document.getElementById('toggleLastTracksBtn').addEventListener('change', (e)=>{
 </script>
 </body>
 </html>
+
