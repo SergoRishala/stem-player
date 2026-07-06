@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Чотири хвилі</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Manrope:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#0d0d0c;
+    --ink:#f4f3f0;
+    --ink-soft:#9a988f;
+    --margin: 5%;
+    --blur: 22px;
+    --stem-size: min(90vw, 423px);
+    --stem-blur: 8px;
+    --stem-glass-alpha: 0.25;
+    --beat-pulse: 0;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;width:100%;background:var(--paper);
+    overflow:hidden;font-family:'Manrope',sans-serif;color:var(--ink);
+    position:fixed; inset:0;
+    overscroll-behavior:none;
+    touch-action:none;
+    -webkit-user-select:none; user-select:none;
+  }
+  #stage{position:fixed;inset:0;}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+
+  #glassPanel{
+    position:fixed; top:var(--margin); bottom:var(--margin); left:var(--margin); right:var(--margin);
+    z-index:5;
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding: clamp(20px,3.5vw,40px);
+    background: rgba(255,255,255,0.08);
+    -webkit-backdrop-filter: blur(var(--blur)) saturate(140%);
+    backdrop-filter: blur(var(--blur)) saturate(140%);
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 28px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+    transition: top .2s ease, bottom .2s ease, left .2s ease, right .2s ease;
+  }
+  header{
+    display:flex; justify-content:space-between; align-items:flex-start;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .brand{
+    font-family:'Unbounded',sans-serif; font-weight:800;
+    font-size: clamp(20px,2.6vw,30px);
+    line-height:1; margin-top:6px;
+  }
+  #trackList{
+    display:flex; flex-direction:column; gap:8px; align-items:flex-end;
+    font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-soft);
+  }
+  .trackRow{display:flex; align-items:center; gap:8px;}
+  .swatch{width:9px; height:9px; border-radius:2px; flex-shrink:0; position:relative;}
+  .swatch::after{
+    content:''; position:absolute; inset:-4px; border-radius:50%;
+    border:1px solid currentColor; opacity:0; animation: pulse 1.8s ease-out infinite;
+  }
+  .trackName{color:var(--ink);}
+
+  @keyframes pulse{
+    0%{ transform:scale(0.4); opacity:.5; }
+    100%{ transform:scale(1.6); opacity:0; }
+  }
+
+  #panel{
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    text-align:center; width:100%;
+  }
+  h1{
+    font-family:'Unbounded',sans-serif; font-weight:600;
+    font-size: clamp(18px,3vw,30px); line-height:1.15; margin:0;
+    letter-spacing:-0.01em;
+  }
+  h1 span{color:var(--ink-soft);}
+  p.sub{
+    margin:0; font-size:13px; color:var(--ink-soft); line-height:1.5;
+    max-width:44ch;
+  }
+
+  #settingsBtn{
+    position:fixed; top: clamp(10px,2vw,18px); right: clamp(10px,2vw,18px);
+    z-index:30; width:42px; height:42px; border-radius:50%;
+    background: rgba(20,20,18,0.6);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border:1px solid rgba(255,255,255,0.18);
+    color:var(--ink); display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  #settingsBtn svg{width:19px;height:19px;}
+  #settingsBtn:hover{ background: rgba(30,30,28,0.75); }
+
+  #importControls{
+    position:fixed; top: clamp(10px,2vw,18px); left: clamp(10px,2vw,18px);
+    z-index:30; display:flex; gap:8px;
+    transform: translate(var(--dx,0px), var(--dy,0px));
+    touch-action:none;
+  }
+  #importControls button{
+    height:42px; padding:0 15px 0 12px; border-radius:999px;
+    background: rgba(20,20,18,0.6);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border:1px solid rgba(255,255,255,0.18);
+    color:var(--ink); display:flex; align-items:center; gap:7px;
+    cursor:pointer;
+    font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.04em;
+    white-space:nowrap;
+  }
+  #importControls svg{width:17px;height:17px;flex-shrink:0;}
+  #importControls button:hover{ background: rgba(30,30,28,0.75); }
+  #importControls .chevron{ width:12px;height:12px; opacity:.6; }
+  #importFileWrap{ position:relative; }
+  #importMenu{
+    position:absolute; top:calc(100% + 8px); left:0; z-index:31;
+    display:flex; flex-direction:column; gap:6px; min-width:220px;
+    padding:8px; border-radius:14px;
+    background: rgba(20,20,18,0.85);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: blur(16px) saturate(140%);
+    border:1px solid rgba(255,255,255,0.16);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+  }
+  #importMenu button{
+    width:100%; text-align:left; border-radius:10px; padding:8px 10px;
+    background:transparent; border:none; color:var(--ink);
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:.02em;
+    cursor:pointer;
+  }
+  #importMenu button:hover{ background: rgba(255,255,255,0.1); }
+  #importMenu button small{ display:block; color:var(--ink-soft); font-size:10px; margin-top:2px; }
+
+  /* ---------- song title (top center) ---------- */
+  #songTitle{
+    position:fixed; top: clamp(10px,2vw,18px); left:50%;
+    transform: translate(calc(-50% + var(--dx,0px)), var(--dy,0px));
+    z-index:25; max-width:44vw;
+    padding:10px 18px; border-radius:999px;
+    background: rgba(20,20,18,0.55);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border:1px solid rgba(255,255,255,0.16);
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.03em;
+    color:var(--ink-soft);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    text-align:center;
+    touch-action:none;
+  }
+  #songTitle b{ color:var(--ink); font-weight:500; }
+
+  /* ---------- player bar (bottom center) ---------- */
+  #playerBar{
+    position:fixed; bottom: clamp(14px,2.4vw,26px); left:50%;
+    transform: translate(calc(-50% + var(--dx,0px)), var(--dy,0px));
+    z-index:25; display:flex; align-items:center; gap:12px;
+    padding:10px 16px 10px 10px; border-radius:999px;
+    background: rgba(20,20,18,0.6);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: blur(16px) saturate(140%);
+    border:1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    width:min(86vw,380px);
+    touch-action:none;
+  }
+  #dragHandle{
+    width:14px; height:22px; flex-shrink:0; cursor:grab;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    opacity:.5;
+  }
+  #dragHandle span{ width:3px; height:3px; border-radius:50%; background:var(--ink); }
+  #playPauseBtn{
+    width:34px; height:34px; border-radius:50%; flex-shrink:0;
+    background: rgba(255,255,255,0.12);
+    border:1px solid rgba(255,255,255,0.25);
+    color:var(--ink); display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  #playPauseBtn svg{ width:15px; height:15px; }
+  #seekRange{ flex:1; }
+  #timeLabel{
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-soft);
+    flex-shrink:0; white-space:nowrap;
+  }
+
+  #settingsPanel{
+    position:fixed; top:0; right:0; height:100%; width:min(320px,86vw);
+    z-index:40; transform:translateX(100%); transition:transform .28s ease;
+    background: rgba(16,16,14,0.86);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    backdrop-filter: blur(24px) saturate(140%);
+    border-left:1px solid rgba(255,255,255,0.14);
+    padding: 22px 20px 30px;
+    overflow-y:auto;
+    touch-action: pan-y;
+    font-family:'Manrope',sans-serif;
+  }
+  #settingsPanel.open{ transform:translateX(0); }
+
+  .settingsHead{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:18px;
+  }
+  .settingsTitle{
+    font-family:'Unbounded',sans-serif; font-weight:600; font-size:16px; color:var(--ink);
+  }
+  #closeSettings{
+    width:30px;height:30px;border-radius:50%; border:1px solid rgba(255,255,255,0.18);
+    background:transparent; color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+
+  .settingGroup{ margin-bottom:20px; }
+  .settingGroup + .settingGroup{ padding-top:16px; border-top:1px solid rgba(255,255,255,0.1); }
+  .settingGroupTitle{
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink); margin-bottom:12px; opacity:.7;
+  }
+  .settingLabel{
+    display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft);
+    font-family:'JetBrains Mono',monospace; letter-spacing:.03em; margin-bottom:8px;
+  }
+  .settingLabel b{ color:var(--ink); font-weight:500; }
+
+  input[type=range]{
+    -webkit-appearance:none; width:100%; height:3px; border-radius:2px;
+    background: rgba(255,255,255,0.22); outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:15px; height:15px; border-radius:50%;
+    background:var(--ink); cursor:pointer; border:2px solid rgba(0,0,0,0.3);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:15px; height:15px; border-radius:50%; background:var(--ink); border:2px solid rgba(0,0,0,0.3); cursor:pointer;
+  }
+
+  .waveSettingRow{
+    display:flex; align-items:center; gap:10px; margin-bottom:10px;
+  }
+  input[type=color]{
+    -webkit-appearance:none; width:28px; height:28px; border-radius:8px; border:1px solid rgba(255,255,255,0.25);
+    background:none; padding:0; cursor:pointer; flex-shrink:0;
+  }
+  input[type=color]::-webkit-color-swatch-wrapper{ padding:0; border-radius:7px; }
+  input[type=color]::-webkit-color-swatch{ border:none; border-radius:7px; }
+
+  .waveSettingCol{ flex:1; }
+  .waveSettingName{ font-size:11px; color:var(--ink-soft); font-family:'JetBrains Mono',monospace; margin-bottom:4px; }
+
+  .toggleRow{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:14px;
+  }
+  .toggleRow span{ font-size:12px; color:var(--ink-soft); font-family:'JetBrains Mono',monospace; letter-spacing:.03em; }
+  .switch{ position:relative; width:42px; height:24px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switchTrack{
+    position:absolute; inset:0; border-radius:999px; cursor:pointer;
+    background: rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.2);
+    transition: background .2s ease;
+  }
+  .switchTrack::before{
+    content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+    background: var(--ink); transition: transform .2s ease;
+  }
+  .switch input:checked + .switchTrack{ background: rgba(255,255,255,0.55); }
+  .switch input:checked + .switchTrack::before{ transform: translateX(18px); }
+
+  .miniBtn{
+    width:100%; padding:10px; border-radius:12px; text-align:center;
+    background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18);
+    color:var(--ink); font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.03em;
+    cursor:pointer; margin-top:4px;
+  }
+  .miniBtn:hover{ background: rgba(255,255,255,0.14); }
+
+  .hiddenEl{ display:none !important; }
+  #glassPanel.noGlass{
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: none;
+    box-shadow: none;
+  }
+
+  /* ---------- Stem group (disc + orbit rings) ---------- */
+  #stemGroup{
+    position:absolute; top:50%; left:50%; width:0; height:0; z-index:6;
+    transform: translate(calc(-50% + var(--dx,0px)), calc(-50% + var(--dy,0px)));
+  }
+  #stemDeck{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(calc(1 + 0.035*var(--beat-pulse,0)));
+    width: var(--stem-size); height: var(--stem-size);
+    border-radius:50%;
+    background: rgba(255,255,255, var(--stem-glass-alpha));
+    -webkit-backdrop-filter: blur(var(--stem-blur)) saturate(150%);
+    backdrop-filter: blur(var(--stem-blur)) saturate(150%);
+    border: 1.5px solid rgba(255,255,255,0.5);
+    box-shadow: 0 10px 44px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -12px 30px rgba(255,255,255,0.05),
+      0 0 calc(10px + 40px*var(--beat-pulse,0)) rgba(255,255,255, calc(0.05 + 0.16*var(--beat-pulse,0)));
+    touch-action:none;
+    transition: box-shadow .06s linear;
+    will-change: transform;
+  }
+  #stemDeck.noGlass{
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+
+  .orbitRing{
+    position:absolute; top:50%; left:50%;
+    pointer-events:none;
+  }
+  #orbitRing1{ width: calc(var(--stem-size) + 46px); height: calc(var(--stem-size) + 46px); }
+  #orbitRing2{ width: calc(var(--stem-size) + 98px); height: calc(var(--stem-size) + 98px); }
+  .orbitDot{
+    position:absolute;
+    width: calc(7px * var(--dot-scale,0.6) * (1 + 0.55*var(--beat-pulse,0)));
+    height: calc(7px * var(--dot-scale,0.6) * (1 + 0.55*var(--beat-pulse,0)));
+    border-radius:50%;
+    background: rgba(255,255,255,0.6);
+    box-shadow: 0 0 calc(6px + 12px*var(--beat-pulse,0)) rgba(255,255,255,0.4);
+    transform: translate(-50%,-50%);
+  }
+  .orbitDot.outer{
+    background: rgba(255,255,255,0.35);
+    box-shadow: 0 0 calc(5px + 10px*var(--beat-pulse,0)) rgba(255,255,255,0.25);
+  }
+
+  #stemArms{ position:absolute; inset:0; z-index:1; pointer-events:none; }
+  .stemArmDot{
+    position:absolute; transform:translate(-50%,-50%);
+    width: 6px; height:6px; border-radius:50%;
+    background: var(--arm-color, #888);
+    opacity: calc(0.16 + 0.84*var(--frac,0));
+    box-shadow: 0 0 calc(3px + 9px*var(--frac,0)) var(--arm-color, #888);
+    transition: opacity .08s linear;
+  }
+  .stemArmLabel{
+    position:absolute; transform:translate(-50%,-50%);
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.05em;
+    color: var(--arm-color, #ccc);
+    white-space:nowrap; text-transform:uppercase;
+    text-shadow: 0 0 8px rgba(0,0,0,0.6);
+    opacity: calc(0.55 + 0.45*var(--frac,0));
+  }
+
+  #gainPuck{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:15%; aspect-ratio:1/1; border-radius:50%;
+    background: rgba(255,255,255,0.85);
+    border:1.5px solid rgba(255,255,255,0.95);
+    box-shadow:
+      0 4px 16px rgba(0,0,0,0.4),
+      0 0 calc(6px + 22px*var(--beat-pulse,0)) rgba(255,255,255, calc(0.18 + 0.3*var(--beat-pulse,0))),
+      0 0 0 6px rgba(255,255,255,0.12);
+    cursor:grab; touch-action:none; z-index:3;
+    transition: box-shadow .08s linear;
+  }
+  #gainPuck:active{ cursor:grabbing; }
+
+  /* ---------- Edit mode ---------- */
+  body.edit-mode .editable{
+    outline: 1.5px dashed rgba(255,255,255,0.55);
+    outline-offset: 4px;
+    cursor: grab;
+  }
+  body.edit-mode .editable:active{ cursor:grabbing; }
+  body.edit-mode #stemDeck{ cursor:grab; }
+</style>
+</head>
+<body>
+
+<div id="stage"><canvas id="cv"></canvas></div>
+
+<div id="importControls" class="editable">
+  <div id="importFileWrap">
+    <button id="importBtn" aria-label="Імпорт файлу" title="Імпортувати аудіофайл">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 16V4M12 4l-4 4M12 4l4 4"/>
+        <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+      </svg>
+      <span>Файл</span>
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div id="importMenu" class="hiddenEl">
+      <button id="importSingleBtn">🎵 Один файл <small>(розділю на 4 стеми)</small></button>
+      <button id="importStemsBtn">🧩 4 готові семпли <small>(бас/барабани/муз./вокал)</small></button>
+    </div>
+  </div>
+  <button id="ytImportBtn" aria-label="Імпорт з YouTube" title="Імпортувати з YouTube">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M23 12s0-3.6-.46-5.2a3 3 0 0 0-2.1-2.1C18.9 4.2 12 4.2 12 4.2s-6.9 0-8.44.5a3 3 0 0 0-2.1 2.1C1 8.4 1 12 1 12s0 3.6.46 5.2a3 3 0 0 0 2.1 2.1c1.54.5 8.44.5 8.44.5s6.9 0 8.44-.5a3 3 0 0 0 2.1-2.1C23 15.6 23 12 23 12z"/>
+      <path d="M10 15.2V8.8l6 3.2-6 3.2z" fill="currentColor" stroke="none"/>
+    </svg>
+    <span>YouTube</span>
+  </button>
+</div>
+<input type="file" id="importFileInput" accept="audio/*" style="display:none;">
+<input type="file" id="importStemsInput" accept="audio/*" multiple style="display:none;">
+
+<div id="songTitle" class="editable">Немає доріжки — <b>імпортуй трек</b></div>
+
+<button id="settingsBtn" aria-label="Налаштування">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+</button>
+
+<div id="settingsPanel">
+  <div class="settingsHead">
+    <div class="settingsTitle">Налаштування</div>
+    <button id="closeSettings" aria-label="Закрити">✕</button>
+  </div>
+
+  <div class="settingGroup">
+    <div class="settingLabel"><span>Відступи по краях</span><b id="marginVal">5%</b></div>
+    <input type="range" id="marginRange" min="0" max="20" step="1" value="5">
+  </div>
+
+  <div class="settingGroup">
+    <div class="settingLabel"><span>Рівень блюру скла</span><b id="blurVal">22px</b></div>
+    <input type="range" id="blurRange" min="0" max="50" step="1" value="22">
+  </div>
+
+  <div class="settingGroup">
+    <div class="settingLabel"><span>Хвилі — колір і розмір</span></div>
+    <div id="waveSettings"></div>
+  </div>
+
+  <div class="settingGroup">
+    <div class="settingGroupTitle">Стем-дек</div>
+
+    <div class="toggleRow">
+      <span>Заднє скло</span>
+      <label class="switch">
+        <input type="checkbox" id="stemGlassToggle" checked>
+        <span class="switchTrack"></span>
+      </label>
+    </div>
+
+    <div class="settingLabel"><span>Розмиття диска</span><b id="stemBlurVal">8px</b></div>
+    <input type="range" id="stemBlurRange" min="0" max="40" step="1" value="8" style="margin-bottom:14px;">
+
+    <div class="settingLabel"><span>Прозорість скла</span><b id="stemAlphaVal">25%</b></div>
+    <input type="range" id="stemAlphaRange" min="0" max="25" step="1" value="25" style="margin-bottom:14px;">
+
+    <div class="settingLabel"><span>Розмір диска</span><b id="stemSizeVal">90%</b></div>
+    <input type="range" id="stemSizeRange" min="40" max="90" step="1" value="90">
+  </div>
+
+  <div class="settingGroup">
+    <div class="settingGroupTitle">Кільце 1 (внутрішнє)</div>
+
+    <div class="settingLabel"><span>Кількість крапок</span><b id="ring1CountVal">10</b></div>
+    <input type="range" id="ring1CountRange" min="3" max="30" step="1" value="10" style="margin-bottom:14px;">
+
+    <div class="settingLabel"><span>Розмір крапок</span><b id="ring1SizeVal">60%</b></div>
+    <input type="range" id="ring1SizeRange" min="30" max="220" step="5" value="60" style="margin-bottom:14px;">
+
+    <div class="settingLabel"><span>Період обертання</span><b id="ring1SpeedVal">24с</b></div>
+    <input type="range" id="ring1SpeedRange" min="4" max="90" step="1" value="24" style="margin-bottom:14px;">
+
+    <div class="settingLabel"><span>Відстань від диска</span><b id="ring1RadiusVal">46px</b></div>
+    <input type="range" id="ring1RadiusRange" min="10" max="200" step="2" value="46" style="margin-bottom:14px;">
+
+    <div class="toggleRow">
+      <span>За годинниковою</span>
+      <label class="switch">
+        <input type="checkbox" id="ring1DirToggle" checked>
+        <span class="switchTrack"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="settingGroup">
+    <div class="settingGroupTitle">Кільце 2 (зовнішнє)</div>
+
+    <div class="settingLabel"><span>Кількість крапок</span><b id="ring2CountVal">14</b></div>
+    <input type="range" id="ring2CountRange" min="3" max="30" step="1" value="14" style="margin-bottom:14px;">
+
+    <div class="settingLabel"><span>Розмір крапок</span><b id="ring2SizeVal">50%</b></div>
+    <input type="range" id="ring2SizeRange" min="30" max="220" step="5" value="50" style="margin-bottom:14px;">
+
+    <div class="settingLabel"><span>Період обертання</span><b id="ring2SpeedVal">38с</b></div>
+    <input type="range" id="ring2SpeedRange" min="4" max="90" step="1" value="38" style="margin-bottom:14px;">
+
+    <div class="settingLabel"><span>Відстань від диска</span><b id="ring2RadiusVal">98px</b></div>
+    <input type="range" id="ring2RadiusRange" min="10" max="200" step="2" value="98" style="margin-bottom:14px;">
+
+    <div class="toggleRow">
+      <span>За годинниковою</span>
+      <label class="switch">
+        <input type="checkbox" id="ring2DirToggle">
+        <span class="switchTrack"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="settingGroup">
+    <div class="settingGroupTitle">Редагування макету</div>
+    <div class="toggleRow">
+      <span>Режим редагування (перетягування)</span>
+      <label class="switch">
+        <input type="checkbox" id="editModeToggle">
+        <span class="switchTrack"></span>
+      </label>
+    </div>
+    <div class="miniBtn" id="resetPositionsBtn">Скинути позиції об'єктів</div>
+  </div>
+
+  <div class="settingGroup">
+    <div class="settingGroupTitle">Об'єкти на екрані</div>
+
+    <div class="toggleRow">
+      <span>Скляний прямокутник</span>
+      <label class="switch">
+        <input type="checkbox" id="toggleGlassRect">
+        <span class="switchTrack"></span>
+      </label>
+    </div>
+    <div class="toggleRow">
+      <span>Заголовок «Хвилі частот»</span>
+      <label class="switch">
+        <input type="checkbox" id="toggleHeaderText" checked>
+        <span class="switchTrack"></span>
+      </label>
+    </div>
+    <div class="toggleRow">
+      <span>Список треків</span>
+      <label class="switch">
+        <input type="checkbox" id="toggleTrackList" checked>
+        <span class="switchTrack"></span>
+      </label>
+    </div>
+    <div class="toggleRow">
+      <span>Текст-опис знизу</span>
+      <label class="switch">
+        <input type="checkbox" id="toggleBottomText">
+        <span class="switchTrack"></span>
+      </label>
+    </div>
+    <div class="toggleRow">
+      <span>Стем-дек</span>
+      <label class="switch">
+        <input type="checkbox" id="toggleStemDeck" checked>
+        <span class="switchTrack"></span>
+      </label>
+    </div>
+    <div class="toggleRow">
+      <span>Плеєр знизу</span>
+      <label class="switch">
+        <input type="checkbox" id="togglePlayerBar" checked>
+        <span class="switchTrack"></span>
+      </label>
+    </div>
+    <div class="toggleRow">
+      <span>Назва пісні зверху</span>
+      <label class="switch">
+        <input type="checkbox" id="toggleSongTitle" checked>
+        <span class="switchTrack"></span>
+      </label>
+    </div>
+  </div>
+</div>
+<div id="glassPanel" class="noGlass">
+<header>
+  <div id="brandBlock" class="editable">
+    <div class="eyebrow">Аудіовізуалізація · 04 хвилі</div>
+    <div class="brand">Хвилі частот</div>
+  </div>
+  <div id="trackList" class="editable">
+    <div class="trackRow"><span class="swatch" style="background:#ffffff; color:#ffffff"></span><span class="trackName">Бас · на паузі</span></div>
+    <div class="trackRow"><span class="swatch" style="background:#c9c7c1; color:#c9c7c1"></span><span class="trackName">Барабани · на паузі</span></div>
+    <div class="trackRow"><span class="swatch" style="background:#8a887f; color:#8a887f"></span><span class="trackName">Музика · на паузі</span></div>
+    <div class="trackRow"><span class="swatch" style="background:#3a3934; color:#3a3934"></span><span class="trackName">Вокал · на паузі</span></div>
+  </div>
+</header>
+
+<div id="stemGroup" class="editable">
+  <div id="orbitRing1" class="orbitRing"></div>
+  <div id="orbitRing2" class="orbitRing"></div>
+  <div id="stemDeck">
+    <div id="stemArms"></div>
+    <div id="gainPuck"></div>
+  </div>
+</div>
+
+<div id="panel" class="editable hiddenEl">
+  <h1>Кожна хвиля — <span>окремий трек.</span><br>Кожен рух — сила його частот.</h1>
+  <p class="sub">Демонстраційний режим: хвилі рухаються за імітованим спектром чотирьох треків, що грають одночасно.</p>
+</div>
+</div>
+
+<div id="playerBar" class="editable">
+  <div id="dragHandle"><span></span><span></span><span></span></div>
+  <button id="playPauseBtn" aria-label="Відтворити">
+    <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8V4z"/></svg>
+  </button>
+  <input type="range" id="seekRange" min="0" max="100" step="0.1" value="0">
+  <div id="timeLabel">0:00 / 3:00</div>
+</div>
+
+<script>
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
+let W, H, DPR;
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W*DPR; canvas.height = H*DPR;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+const WAVE_COLORS = [
+  {top:'#ffffff', bottom:'#e4e2db', stroke:'rgba(255,255,255,0.9)'},
+  {top:'#d2d0c8', bottom:'#a8a59a', stroke:'rgba(255,255,255,0.5)'},
+  {top:'#928f84', bottom:'#68655a', stroke:'rgba(255,255,255,0.28)'},
+  {top:'#54524a', bottom:'#2e2c27', stroke:'rgba(255,255,255,0.14)'}
+];
+
+// Used only until real audio is loaded, so there's still motion on first paint.
+const WAVE_PROFILES = [
+  { tempo: 1.00, kick: 0.62, swing: 1.00, bins: 5 },
+  { tempo: 0.74, kick: 0.90, swing: 1.35, bins: 7 },
+  { tempo: 1.35, kick: 0.40, swing: 0.80, bins: 9 },
+  { tempo: 0.55, kick: 1.20, swing: 1.6,  bins: 4 },
+];
+
+const SEGMENTS = 48; // fewer points per wave = noticeably cheaper per frame, same visual read
+const smoothBuffers = [
+  new Float32Array(SEGMENTS+1),
+  new Float32Array(SEGMENTS+1),
+  new Float32Array(SEGMENTS+1),
+  new Float32Array(SEGMENTS+1),
+];
+// scratch arrays reused every frame instead of re-allocated — avoids GC churn that was the main source of stutter
+const pointsX = new Float32Array(SEGMENTS+1);
+const pointsY = new Float32Array(SEGMENTS+1);
+
+function pseudoSpectrum(i, t, seg){
+  const p = WAVE_PROFILES[i];
+  const x = seg / SEGMENTS;
+  let v = 0;
+  for(let b=1; b<=p.bins; b++){
+    const freq = p.tempo * (0.6 + b*0.37);
+    const phase = i*2.1 + b*1.7;
+    v += (1/b) * Math.sin(t*freq + x*b*2.4 + phase);
+  }
+  v = (v / (p.bins*0.7) + 1) / 2;
+  const kickPhase = (t * p.kick) % (Math.PI*2);
+  const kick = Math.max(0, Math.sin(kickPhase)) ** 6;
+  v = Math.min(1, v*0.7 + kick*0.6);
+  return v;
+}
+
+function waveBaseline(i){
+  const topMargin = H*0.30;
+  const spread = H*0.62;
+  return topMargin + spread * ((3-i)/3);
+}
+
+// Per-stem loudness envelope, read straight from that stem's own analyser — this is what makes
+// wave 1 (bass) move to the bass, wave 2 (drums) move to the drums, etc, with no other input.
+const levelEnv = [0,0,0,0];
+
+function updateStemLevels(t){
+  for(let i=0;i<4;i++){
+    let sum = 0;
+    if(audioLoaded && stemAnalysers[i]){
+      const data = analyserFreqData[i];
+      for(let s=0;s<data.length;s++) sum += data[s];
+      sum = sum / (data.length*255);
+    } else {
+      for(let s=0;s<=SEGMENTS;s++) sum += pseudoSpectrum(i, t, s);
+      sum = sum / (SEGMENTS+1);
+    }
+    // punchy attack, gentle release so loud moments read clearly but don't flicker
+    levelEnv[i] = sum > levelEnv[i] ? (levelEnv[i] + (sum-levelEnv[i])*0.55) : levelEnv[i]*0.90;
+  }
+}
+
+function drawWave(i, colorSet, t){
+  const baseY = waveBaseline(i);
+  const p = WAVE_PROFILES[i];
+  const sm = smoothBuffers[i];
+  const useReal = audioLoaded && stemAnalysers[i];
+  const freqData = useReal ? analyserFreqData[i] : null;
+  const freqLen = useReal ? freqData.length : 0;
+
+  const ampScale = H * (0.18 - i*0.016) * p.swing * 0.9;
+  const restLift = H * 0.02;
+  // real loudness of this stem drives the overall height; per-bin data still shapes the silhouette
+  const loud = 0.35 + 0.9*levelEnv[i];
+
+  for(let s=0; s<=SEGMENTS; s++){
+    const target = useReal ? (freqData[Math.min((s * freqLen / (SEGMENTS+1))|0, freqLen-1)] / 255) : pseudoSpectrum(i, t, s);
+    sm[s] += (target - sm[s]) * 0.3;
+
+    const x = (s/SEGMENTS) * W;
+    const drive = sm[s] * loud;
+    const wobble = Math.sin((s/SEGMENTS)*Math.PI*2 + t*p.tempo + i*1.3) * (0.2 + drive*0.4);
+    pointsX[s] = x;
+    pointsY[s] = baseY - restLift - drive*ampScale - wobble*ampScale*0.3;
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(0, H+10);
+  ctx.lineTo(pointsX[0], pointsY[0]);
+  let prevX = pointsX[0], prevY = pointsY[0];
+  for(let s=1; s<=SEGMENTS; s++){
+    const x = pointsX[s], y = pointsY[s];
+    const mx = (prevX+x)/2, my = (prevY+y)/2;
+    ctx.quadraticCurveTo(prevX, prevY, mx, my);
+    prevX = x; prevY = y;
+  }
+  ctx.lineTo(W, prevY);
+  ctx.lineTo(W, H+10);
+  ctx.closePath();
+
+  const grad = ctx.createLinearGradient(0, baseY-ampScale-restLift, 0, baseY+ampScale*0.5);
+  grad.addColorStop(0, colorSet.top);
+  grad.addColorStop(1, colorSet.bottom);
+  ctx.fillStyle = grad;
+
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = 14;
+  ctx.shadowOffsetY = 10;
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+
+  ctx.strokeStyle = colorSet.stroke;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+// ---------- Real audio engine (talks to the Python backend) ----------
+const API_BASE = ''; // same origin — Flask serves this page and the API
+let audioCtx = null;
+let masterGain = null;
+const stemBuffers = [null,null,null,null];
+const stemGains = [null,null,null,null];
+let sources = [];
+let playStartCtxTime = 0;
+let pausedOffset = 0;
+let audioLoaded = false;
+let audioDuration = 0;
+let currentSongName = null;
+const STEM_ORDER = ["bass","drums","other","vocals"]; // wave 0 (bottom/front) = bass … wave 3 (top/back) = vocals
+const STEM_LABELS_UI = ["Бас","Барабани","Музика","Вокал"];
+const FOLDER_PATTERNS = {
+  vocals: ["vocal","вокал","voice","vox","lead"],
+  drums:  ["drum","барабан","perc","beat"],
+  bass:   ["bass","бас"],
+  other:  ["other","music","музик","instrumental","instr","accomp"],
+};
+function detectStemKey(filename){
+  const lname = filename.toLowerCase();
+  for(const key of Object.keys(FOLDER_PATTERNS)){
+    if(FOLDER_PATTERNS[key].some(p=> lname.includes(p))) return key;
+  }
+  return null;
+}
+
+function ensureAudioCtx(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 1;
+    masterGain.connect(audioCtx.destination);
+  }
+  return audioCtx;
+}
+
+function stopSources(){
+  sources.forEach(s=>{ try{ s.stop(); }catch(e){} });
+  sources = [];
+}
+
+function schedulePlayback(offset){
+  stopSources();
+  const startAt = audioCtx.currentTime + 0.05;
+  for(let i=0;i<4;i++){
+    if(!stemBuffers[i]) continue;
+    const src = audioCtx.createBufferSource();
+    src.buffer = stemBuffers[i];
+    src.connect(stemGains[i]);
+    src.start(startAt, Math.max(0, offset));
+    sources.push(src);
+  }
+  playStartCtxTime = startAt - offset;
+}
+
+// ---- per-stem analysers: real frequency data drives the waves, real RMS drives the beat pulses ----
+const stemAnalysers = [null,null,null,null];
+const analyserFreqData = [null,null,null,null];
+let masterAnalyser = null, masterTimeData = null;
+let drumsTimeData = null; // wave index 1 = drums
+
+function resetStemAudio(){
+  for(let i=0;i<4;i++){
+    if(stemGains[i]) try{ stemGains[i].disconnect(); }catch(e){}
+    if(stemAnalysers[i]) try{ stemAnalysers[i].disconnect(); }catch(e){}
+    stemGains[i] = null; stemAnalysers[i] = null; stemBuffers[i] = null; analyserFreqData[i] = null;
+  }
+  audioDuration = 0;
+  drumsTimeData = null;
+}
+
+function attachStemBuffer(i, buf, label){
+  stemBuffers[i] = buf;
+
+  const gain = audioCtx.createGain();
+  gain.gain.value = 1;
+
+  const analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 128;
+  analyser.smoothingTimeConstant = 0.72;
+  gain.connect(analyser);
+  analyser.connect(masterGain);
+
+  stemGains[i] = gain;
+  stemAnalysers[i] = analyser;
+  analyserFreqData[i] = new Uint8Array(analyser.frequencyBinCount);
+  if(i === 1) drumsTimeData = new Float32Array(analyser.fftSize); // drums-specific beat energy
+
+  audioDuration = Math.max(audioDuration, buf.duration);
+  if(trackNameEls[i]) trackNameEls[i].textContent = `${label} · на паузі`;
+}
+
+async function attachStemFromArrayBuffer(i, arrayBuffer, label){
+  const buf = await audioCtx.decodeAudioData(arrayBuffer);
+  attachStemBuffer(i, buf, label);
+}
+
+function finalizeAudioLoad(){
+  ensureMasterAnalyser();
+  audioLoaded = true;
+  pausedOffset = 0;
+  isPlaying = false;
+  seekRange.value = 0;
+  timeLabel.textContent = fmtTime(0) + ' / ' + fmtTime(audioDuration);
+  setPlayIcon(false);
+}
+
+// ---------- Demo stems: synthesized on the fly so there's always something playing while you wait ----------
+// A calmer, more melodic loop than a synth-pop stab — soft rolling bass, brushed drums, warm pad, gentle vocal-ish lead.
+let demoBuffers = null;
+let demoActive = false;
+let demoSources = [];
+
+function synthDemoChannel(kind, sr){
+  const dur = 6; // seconds — short seamless loop
+  const len = Math.floor(dur*sr);
+  const data = new Float32Array(len);
+  const bpm = 84;
+  const beatLen = 60/bpm;
+  // gentle A-minor-ish progression: Am - F - C - G, one chord per 1.5 bars
+  const chordRoots = [110.00, 87.31, 65.41, 98.00]; // A2, F2, C2, G2
+  const chordNotes = [
+    [220.00, 261.63, 329.63], // Am
+    [174.61, 220.00, 261.63], // F
+    [130.81, 164.81, 196.00], // C
+    [196.00, 246.94, 293.66], // G
+  ];
+  for(let n=0;n<len;n++){
+    const time = n/sr;
+    const beatPhase = (time % beatLen) / beatLen;
+    const beatIndex = Math.floor(time/beatLen);
+    const chordIndex = Math.floor(time / (dur/4)) % 4;
+    let s = 0;
+    if(kind === 'bass'){
+      const root = chordRoots[chordIndex];
+      const env = Math.exp(-beatPhase*3.2) * 0.85 + 0.15;
+      s = Math.sin(2*Math.PI*root*time) * env * 0.9;
+    } else if(kind === 'drums'){
+      const isKick = beatIndex % 2 === 0;
+      const kick = isKick ? Math.sin(2*Math.PI*52*time) * Math.exp(-beatPhase*16) : 0;
+      const hatPhase = (time % (beatLen/2)) / (beatLen/2);
+      const hat = (Math.random()*2-1) * Math.exp(-hatPhase*30) * 0.08;
+      const shakerPhase = (time % (beatLen/4)) / (beatLen/4);
+      const shaker = (Math.random()*2-1) * Math.exp(-shakerPhase*24) * 0.05;
+      s = kick*0.8 + hat + shaker;
+    } else if(kind === 'other'){
+      const notes = chordNotes[chordIndex];
+      const swell = 0.5 + 0.35*Math.sin(2*Math.PI*(time/(dur/2)));
+      s = notes.reduce((sum,f)=> sum + Math.sin(2*Math.PI*f*time)*0.13, 0) * swell;
+    } else { // vocals — soft, slow, wordless lead line
+      const notes = chordNotes[chordIndex];
+      const lead = notes[notes.length-1]; // top note of current chord
+      const vibrato = Math.sin(2*Math.PI*4.5*time) * 3;
+      const seg = dur/4;
+      const localT = time % seg;
+      const env = Math.sin(Math.PI * Math.min(1, localT/(seg*0.85)));
+      s = Math.sin(2*Math.PI*(lead+vibrato)*time) * Math.max(0,env) * 0.4;
+    }
+    data[n] = Math.max(-1, Math.min(1, s));
+  }
+  return data;
+}
+
+function buildDemoBuffersIfNeeded(){
+  if(demoBuffers) return demoBuffers;
+  const sr = audioCtx.sampleRate;
+  demoBuffers = STEM_ORDER.map(kind=>{
+    const data = synthDemoChannel(kind, sr);
+    const buf = audioCtx.createBuffer(1, data.length, sr);
+    buf.copyToChannel(data, 0);
+    return buf;
+  });
+  return demoBuffers;
+}
+
+function stopDemoStems(){
+  if(!demoActive) return;
+  demoSources.forEach(s=>{ try{ s.stop(); }catch(e){} });
+  demoSources = [];
+  demoActive = false;
+}
+
+// Plays instantly — call this the moment an import starts, so there's music and moving waves while the real track loads
+function playDemoStems(){
+  ensureAudioCtx();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  if(demoActive) return;
+
+  resetStemAudio();
+  const buffers = buildDemoBuffersIfNeeded();
+  for(let i=0;i<4;i++) attachStemBuffer(i, buffers[i], STEM_LABELS_UI[i]);
+  ensureMasterAnalyser();
+  audioLoaded = true;
+  demoActive = true;
+
+  const startAt = audioCtx.currentTime + 0.05;
+  demoSources = [];
+  for(let i=0;i<4;i++){
+    const src = audioCtx.createBufferSource();
+    src.buffer = stemBuffers[i];
+    src.loop = true;
+    src.connect(stemGains[i]);
+    src.start(startAt);
+    demoSources.push(src);
+  }
+  sources = demoSources;
+  playStartCtxTime = startAt;
+  isPlaying = true;
+  setPlayIcon(true);
+  trackNameEls.forEach(el=>{ el.textContent = el.textContent.replace(/·.*/, '· грає (демо)'); });
+}
+
+function ensureMasterAnalyser(){
+  if(!masterAnalyser){
+    masterAnalyser = audioCtx.createAnalyser();
+    masterAnalyser.fftSize = 256;
+    masterTimeData = new Float32Array(masterAnalyser.fftSize);
+    masterGain.connect(masterAnalyser); // parallel tap, doesn't affect audible output
+  }
+}
+
+function rmsFromAnalyser(analyser, buffer){
+  analyser.getFloatTimeDomainData(buffer);
+  let sum = 0;
+  for(let k=0;k<buffer.length;k++) sum += buffer[k]*buffer[k];
+  return Math.sqrt(sum/buffer.length);
+}
+
+async function loadStemsIntoAudio(stems){
+  ensureAudioCtx();
+  resetStemAudio();
+  const byKey = {};
+  stems.forEach(s=> byKey[s.key] = s);
+  let done = 0;
+  const jobs = [];
+  for(let i=0;i<4;i++){
+    const s = byKey[STEM_ORDER[i]];
+    if(!s) continue;
+    jobs.push((async ()=>{
+      const resp = await fetch(API_BASE + s.url);
+      const arr = await resp.arrayBuffer();
+      await attachStemFromArrayBuffer(i, arr, s.label);
+      done++;
+      songTitleEl.innerHTML = `Завантаження стемів… <b>${done}/4</b>`;
+    })());
+  }
+  await Promise.all(jobs); // decode in parallel instead of one-by-one — much faster
+  finalizeAudioLoad();
+  stopDemoStems();
+}
+
+// Load 4 already-separated stem files directly — no Demucs round-trip needed at all.
+async function loadLocalStemFiles(fileList){
+  ensureAudioCtx();
+  resetStemAudio();
+
+  const files = Array.from(fileList).slice(0, 8);
+  const slots = new Array(4).fill(null);
+  const used = new Set();
+
+  files.forEach(f=>{
+    const key = detectStemKey(f.name);
+    if(key){
+      const idx = STEM_ORDER.indexOf(key);
+      if(idx !== -1 && !slots[idx]){ slots[idx] = f; used.add(f); }
+    }
+  });
+  let li = 0;
+  const leftovers = files.filter(f=> !used.has(f));
+  for(let i=0;i<4;i++){
+    if(!slots[i] && li < leftovers.length){ slots[i] = leftovers[li++]; }
+  }
+
+  let done = 0;
+  const total = slots.filter(Boolean).length;
+  const jobs = [];
+  for(let i=0;i<4;i++){
+    if(!slots[i]) continue;
+    jobs.push((async ()=>{
+      const arr = await slots[i].arrayBuffer();
+      await attachStemFromArrayBuffer(i, arr, STEM_LABELS_UI[i]);
+      done++;
+      songTitleEl.innerHTML = `Розпаковка семплів… <b>${done}/${total}</b>`;
+    })());
+  }
+  await Promise.all(jobs); // parallel decode — 4 big WAVs decode concurrently instead of one-by-one
+  finalizeAudioLoad();
+  stopDemoStems();
+  songTitleEl.innerHTML = `Зараз: <b>${currentSongName || '4 семпли'}</b>`;
+}
+
+function pollSeparationJob(jobId){
+  const poll = async ()=>{
+    try{
+      const r = await fetch(API_BASE + '/api/status/' + jobId);
+      const job = await r.json();
+      if(job.status === 'running'){
+        songTitleEl.innerHTML = `Розділення… <b>${job.progress}%</b>`;
+        setTimeout(poll, 800);
+      } else if(job.status === 'done'){
+        songTitleEl.innerHTML = 'Завантаження стемів у плеєр…';
+        await loadStemsIntoAudio(job.stems);
+        songTitleEl.innerHTML = `Зараз: <b>${currentSongName || 'Трек'}</b>`;
+      } else {
+        songTitleEl.innerHTML = `Помилка: <b>${(job.message||'невідома').slice(0,60)}</b>`;
+      }
+    } catch(err){
+      songTitleEl.innerHTML = `Помилка з'єднання з сервером`;
+    }
+  };
+  poll();
+}
+
+async function startSeparationFlow(path){
+  songTitleEl.innerHTML = 'Розділення… <b>0%</b>';
+  try{
+    const resp = await fetch(API_BASE + '/api/separate', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({path, n_stems:4})
+    });
+    const data = await resp.json();
+    if(data.error){ songTitleEl.innerHTML = `Помилка: <b>${data.error}</b>`; return; }
+    pollSeparationJob(data.job_id);
+  } catch(err){
+    songTitleEl.innerHTML = `Помилка з'єднання з сервером`;
+  }
+}
+
+// ---------- Player state ----------
+const FAKE_DURATION = 180; // 3:00 fallback demo duration when no real track is loaded
+let currentTime = 0;
+let isPlaying = false;
+let isSeeking = false;
+let lastFrameTs = null;
+
+function fmtTime(s){
+  s = Math.max(0, Math.floor(s));
+  const m = Math.floor(s/60), sec = s%60;
+  return m + ':' + String(sec).padStart(2,'0');
+}
+
+const seekRange = document.getElementById('seekRange');
+const timeLabel = document.getElementById('timeLabel');
+const playPauseBtn = document.getElementById('playPauseBtn');
+const playIcon = document.getElementById('playIcon');
+const trackNameEls = document.querySelectorAll('.trackName');
+
+function updatePlayerUI(){
+  if(!isSeeking){
+    seekRange.value = (currentTime/FAKE_DURATION)*100;
+  }
+  timeLabel.textContent = fmtTime(currentTime) + ' / ' + fmtTime(FAKE_DURATION);
+}
+
+let t = 0;
+let frameCounter = 0;
+function draw(ts){
+  if(lastFrameTs === null) lastFrameTs = ts;
+  const dt = Math.min(0.1, (ts - lastFrameTs)/1000 || 0);
+  lastFrameTs = ts;
+
+  ctx.clearRect(0,0,W,H);
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0, '#1a1a18');
+  bg.addColorStop(1, '#050504');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,W,H);
+
+  t += 0.016;
+  updateStemLevels(t);
+  for(let i=3; i>=0; i--){
+    drawWave(i, WAVE_COLORS[i], t);
+  }
+  updateBeatPulses(t);
+  updateRingRotation(dt);
+  frameCounter++;
+  if(frameCounter % 2 === 0) updateStemArms();
+
+  if(audioLoaded){
+    if(isPlaying && !isSeeking){
+      const cur = audioCtx.currentTime - playStartCtxTime;
+      if(demoActive){
+        const loopCur = cur % audioDuration;
+        seekRange.value = (loopCur/audioDuration)*100;
+        timeLabel.textContent = 'демо · ' + fmtTime(loopCur) + ' / ' + fmtTime(audioDuration);
+      } else if(cur >= audioDuration){
+        stopSources(); isPlaying = false; pausedOffset = 0;
+        setPlayIcon(false);
+        trackNameEls.forEach(el=>{ el.textContent = el.textContent.replace(/·.*/, '· на паузі'); });
+        seekRange.value = 0;
+        timeLabel.textContent = fmtTime(0) + ' / ' + fmtTime(audioDuration);
+      } else {
+        seekRange.value = (cur/audioDuration)*100;
+        timeLabel.textContent = fmtTime(cur) + ' / ' + fmtTime(audioDuration);
+      }
+    }
+  } else if(isPlaying && !isSeeking){
+    currentTime += dt;
+    if(currentTime >= FAKE_DURATION) currentTime = 0;
+    updatePlayerUI();
+  }
+
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+function setPlayIcon(playing){
+  playIcon.innerHTML = playing
+    ? '<rect x="5" y="4" width="5" height="16"/><rect x="14" y="4" width="5" height="16"/>'
+    : '<path d="M6 4l14 8-14 8V4z"/>';
+}
+
+playPauseBtn.addEventListener('click', ()=>{
+  if(!audioLoaded){
+    // demo fallback: no real track loaded yet, just animate the fake progress
+    isPlaying = !isPlaying;
+    setPlayIcon(isPlaying);
+    trackNameEls.forEach((el)=>{
+      el.textContent = el.textContent.replace(/·.*/, '· ' + (isPlaying ? 'грає' : 'на паузі'));
+    });
+    return;
+  }
+
+  ensureAudioCtx();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+
+  if(!isPlaying){
+    if(demoActive){
+      const startAt = audioCtx.currentTime + 0.03;
+      demoSources = [];
+      for(let i=0;i<4;i++){
+        const src = audioCtx.createBufferSource();
+        src.buffer = stemBuffers[i];
+        src.loop = true;
+        src.connect(stemGains[i]);
+        src.start(startAt, (pausedOffset % audioDuration));
+        demoSources.push(src);
+      }
+      sources = demoSources;
+      playStartCtxTime = startAt - pausedOffset;
+    } else {
+      schedulePlayback(pausedOffset >= audioDuration ? 0 : pausedOffset);
+    }
+    isPlaying = true;
+  } else {
+    pausedOffset = audioCtx.currentTime - playStartCtxTime;
+    stopSources();
+    isPlaying = false;
+  }
+  setPlayIcon(isPlaying);
+  trackNameEls.forEach((el)=>{
+    el.textContent = el.textContent.replace(/·.*/, '· ' + (isPlaying ? 'грає' : 'на паузі'));
+  });
+});
+
+seekRange.addEventListener('pointerdown', ()=>{ isSeeking = true; });
+seekRange.addEventListener('input', (e)=>{
+  if(audioLoaded){
+    const target = (e.target.value/100) * audioDuration;
+    if(isPlaying){
+      schedulePlayback(target);
+    } else {
+      pausedOffset = target;
+    }
+    timeLabel.textContent = fmtTime(target) + ' / ' + fmtTime(audioDuration);
+  } else {
+    currentTime = (e.target.value/100) * FAKE_DURATION;
+    timeLabel.textContent = fmtTime(currentTime) + ' / ' + fmtTime(FAKE_DURATION);
+  }
+});
+['pointerup','pointercancel','change'].forEach(evt=>{
+  seekRange.addEventListener(evt, ()=>{ isSeeking = false; });
+});
+seekRange.addEventListener('pointerdown', (e)=> e.stopPropagation());
+playPauseBtn.addEventListener('pointerdown', (e)=> e.stopPropagation());
+
+// ---------- Object refs ----------
+const glassPanelEl = document.getElementById('glassPanel');
+const stemGroupEl = document.getElementById('stemGroup');
+const songTitleEl = document.getElementById('songTitle');
+
+// ---------- Import menu: choose "single file to split" vs "4 ready-made stems" ----------
+const importBtn = document.getElementById('importBtn');
+const importMenu = document.getElementById('importMenu');
+const importFileWrap = document.getElementById('importFileWrap');
+const importSingleBtn = document.getElementById('importSingleBtn');
+const importStemsBtn = document.getElementById('importStemsBtn');
+const ytImportBtn = document.getElementById('ytImportBtn');
+const importFileInput = document.getElementById('importFileInput');
+const importStemsInput = document.getElementById('importStemsInput');
+
+importBtn.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  importMenu.classList.toggle('hiddenEl');
+});
+document.addEventListener('click', (e)=>{
+  if(!importFileWrap.contains(e.target)) importMenu.classList.add('hiddenEl');
+});
+
+importSingleBtn.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  importMenu.classList.add('hiddenEl');
+  importFileInput.click();
+});
+importStemsBtn.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  importMenu.classList.add('hiddenEl');
+  importStemsInput.click();
+});
+
+importFileInput.addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  currentSongName = file.name.replace(/\.[^/.]+$/, '');
+  playDemoStems();
+  songTitleEl.innerHTML = `Завантаження файлу… <b>${currentSongName}</b> · грає демо, поки чекаєш`;
+  try{
+    const fd = new FormData();
+    fd.append('file', file);
+    const resp = await fetch(API_BASE + '/api/upload', { method:'POST', body: fd });
+    const data = await resp.json();
+    if(data.error){ songTitleEl.innerHTML = `Помилка: <b>${data.error}</b>`; return; }
+    startSeparationFlow(data.path);
+  } catch(err){
+    songTitleEl.innerHTML = `Помилка з'єднання з сервером`;
+  }
+  importFileInput.value = '';
+});
+
+importStemsInput.addEventListener('change', async (e)=>{
+  const files = e.target.files;
+  if(!files || !files.length) return;
+  currentSongName = '4 семпли';
+  playDemoStems();
+  songTitleEl.innerHTML = `Розпаковка семплів… грає демо, поки чекаєш`;
+  try{
+    ensureAudioCtx();
+    if(audioCtx.state === 'suspended') await audioCtx.resume();
+    await loadLocalStemFiles(files);
+  } catch(err){
+    songTitleEl.innerHTML = `Помилка завантаження семплів`;
+  }
+  importStemsInput.value = '';
+});
+
+ytImportBtn.addEventListener('click', async ()=>{
+  const url = prompt('Встав посилання на YouTube:');
+  if(!url) return;
+  playDemoStems();
+  songTitleEl.innerHTML = 'Завантаження з YouTube… грає демо, поки чекаєш';
+  try{
+    const resp = await fetch(API_BASE + '/api/youtube', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ url })
+    });
+    const data = await resp.json();
+    if(data.error){ songTitleEl.innerHTML = `Помилка: <b>${data.error}</b>`; return; }
+    currentSongName = data.filename.replace(/\.[^/.]+$/, '');
+    songTitleEl.innerHTML = `Завантажено: <b>${currentSongName}</b>`;
+    startSeparationFlow(data.path);
+  } catch(err){
+    songTitleEl.innerHTML = `Помилка з'єднання з сервером`;
+  }
+});
+
+// ---------- Stem arms: radial VU-style dots + labels around the disc (bass/drums/other/vocals) ----------
+const stemArmsEl = document.getElementById('stemArms');
+const ARM_ANGLES_DEG = [90, 0, 270, 180]; // matches gain-puck geometry: N=bass, E=drums, S=other, W=vocals
+const ARM_DOT_COUNT = 6;
+let armDotRefs = []; // [ [dot,dot,...], ... ] per stem
+let armLabelRefs = []; // label element per stem, used to drive --frac glow only (color is fixed white)
+
+function buildStemArms(){
+  stemArmsEl.innerHTML = '';
+  armDotRefs = [];
+  armLabelRefs = [];
+  for(let i=0;i<4;i++){
+    const angleRad = ARM_ANGLES_DEG[i] * Math.PI/180;
+    const dx = Math.cos(angleRad), dy = -Math.sin(angleRad); // screen-space (y flips)
+    const color = WAVE_COLORS[i].top;
+    const dots = [];
+    for(let k=0; k<ARM_DOT_COUNT; k++){
+      const frac = (k+1)/(ARM_DOT_COUNT+1.6); // spread from near-center to near-edge
+      const r = frac * 46;
+      const dot = document.createElement('div');
+      dot.className = 'stemArmDot';
+      dot.style.setProperty('--arm-color', color);
+      dot.style.left = (50 + dx*r) + '%';
+      dot.style.top  = (50 + dy*r) + '%';
+      stemArmsEl.appendChild(dot);
+      dots.push(dot);
+    }
+    armDotRefs.push(dots);
+
+    const label = document.createElement('div');
+    label.className = 'stemArmLabel';
+    label.textContent = STEM_LABELS_UI[i];
+    const lr = 60;
+    label.style.left = (50 + dx*lr) + '%';
+    label.style.top  = (50 + dy*lr) + '%';
+    stemArmsEl.appendChild(label);
+    armLabelRefs.push(label);
+  }
+}
+buildStemArms();
+
+function updateStemArms(){
+  for(let i=0;i<4;i++){
+    const level = levelEnv[i];
+    const dots = armDotRefs[i];
+    for(let k=0;k<dots.length;k++){
+      const frac = Math.max(0, Math.min(1, level*dots.length - k));
+      dots[k].style.setProperty('--frac', frac.toFixed(3));
+    }
+    if(armLabelRefs[i]) armLabelRefs[i].style.setProperty('--frac', Math.max(0,Math.min(1,level)).toFixed(3));
+  }
+}
+
+// ---------- Orbit rings ----------
+const stemDeckEl = document.getElementById('stemDeck');
+const orbitRing1 = document.getElementById('orbitRing1');
+const orbitRing2 = document.getElementById('orbitRing2');
+
+function buildRing(el, count, outer){
+  el.innerHTML = '';
+  for(let k=0; k<count; k++){
+    const angle = (k/count) * Math.PI * 2;
+    const dot = document.createElement('div');
+    dot.className = 'orbitDot' + (outer ? ' outer' : '');
+    dot.style.left = (50 + 50*Math.cos(angle)) + '%';
+    dot.style.top  = (50 + 50*Math.sin(angle)) + '%';
+    el.appendChild(dot);
+  }
+}
+buildRing(orbitRing1, 10, false);
+buildRing(orbitRing2, 14, true);
+
+// ring rotation driven in JS so it can speed up with the music
+const ringState = {
+  1: { angle: 0, baseSpeed: 360/24, dir: 1 },
+  2: { angle: 0, baseSpeed: 360/38, dir: -1 },
+};
+
+// ring1 speeds up with the overall beat, ring2 speeds up specifically with the drums
+function updateRingRotation(dt){
+  const s1 = ringState[1], s2 = ringState[2];
+  s1.angle = (s1.angle + s1.dir * s1.baseSpeed * dt * (1 + 4.5*beatEnv)) % 360;
+  s2.angle = (s2.angle + s2.dir * s2.baseSpeed * dt * (1 + 6*drumEnv)) % 360;
+  orbitRing1.style.transform = `translate(-50%,-50%) rotate(${s1.angle}deg)`;
+  orbitRing2.style.transform = `translate(-50%,-50%) rotate(${s2.angle}deg)`;
+}
+
+// ---------- Beat pulses: ring1 (+ puck glow) follow the overall beat, ring2 follows the drums specifically ----------
+let beatEnv = 0;
+let drumEnv = 0;
+
+function updateBeatPulses(t){
+  let beatTarget, drumTarget;
+
+  if(audioLoaded && masterAnalyser){
+    const masterRms = rmsFromAnalyser(masterAnalyser, masterTimeData);
+    beatTarget = Math.min(1, masterRms * 7.5);
+    if(stemAnalysers[1] && drumsTimeData){
+      const drumRms = rmsFromAnalyser(stemAnalysers[1], drumsTimeData);
+      drumTarget = Math.min(1, drumRms * 9);
+    } else {
+      drumTarget = beatTarget;
+    }
+  } else {
+    const kickPhase = (t * WAVE_PROFILES[1].kick) % (Math.PI*2);
+    drumTarget = Math.max(0, Math.sin(kickPhase)) ** 8;
+    const bassPhase = (t * WAVE_PROFILES[0].kick) % (Math.PI*2);
+    const bassPulse = Math.max(0, Math.sin(bassPhase)) ** 8;
+    beatTarget = Math.max(drumTarget*0.7, bassPulse);
+  }
+
+  beatEnv = beatTarget > beatEnv ? beatTarget : beatEnv * 0.90;
+  drumEnv = drumTarget > drumEnv ? drumTarget : drumEnv * 0.86;
+
+  stemGroupEl.style.setProperty('--beat-pulse', beatEnv.toFixed(3));
+  orbitRing2.style.setProperty('--beat-pulse', drumEnv.toFixed(3));
+}
+
+// ---------- Gain puck: drag inside the disc to crossfade the 4 stems' actual volume ----------
+// (Purely a mixer now — it changes real gain only. Wave height always reflects each stem's
+// own real frequency/loudness, so muting a stem here makes its own wave settle down naturally.)
+const gainPuck = document.getElementById('gainPuck');
+let puckDragging = false;
+let puckAnimReq = null;
+let puckPos = {x:0, y:0};
+let puckVel = {x:0, y:0};
+
+function angleDiff(a, b){
+  const d = ((a - b + 180) % 360 + 360) % 360 - 180;
+  return Math.abs(d);
+}
+
+function applyPuckWeights(dx, dy, maxR){
+  const dist = Math.hypot(dx, dy);
+  const tt = Math.max(0, Math.min(1, dist/maxR));
+  const puckAngle = Math.atan2(-dy, dx) * 180/Math.PI;
+  const armAngles = [90, 0, 270, 180];
+  const spacing = 90;
+  for(let i=0;i<4;i++){
+    let weight;
+    if(tt <= 0.0001){
+      weight = 1;
+    } else {
+      const diff = angleDiff(puckAngle, armAngles[i]);
+      const x = diff/spacing;
+      const w = x >= 1 ? 0 : Math.pow(1-x, 2) * (1 + 2*x);
+      weight = (1-tt)*1 + tt*w;
+    }
+    if(stemGains[i]) stemGains[i].gain.value = weight;
+  }
+}
+
+let cachedDeckRect = null;
+function refreshDeckRect(){ cachedDeckRect = stemDeckEl.getBoundingClientRect(); return cachedDeckRect; }
+window.addEventListener('resize', ()=>{ cachedDeckRect = null; });
+
+function setPuckFromClient(clientX, clientY){
+  const rect = cachedDeckRect || refreshDeckRect();
+  const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+  const maxR = rect.width/2 - (rect.width * 0.075) - 4;
+  let dx = clientX - cx, dy = clientY - cy;
+  const dist = Math.hypot(dx, dy);
+  if(dist > maxR){ const sc = maxR/dist; dx *= sc; dy *= sc; }
+  puckPos.x = dx; puckPos.y = dy;
+  gainPuck.style.left = (50 + (dx/rect.width)*100) + '%';
+  gainPuck.style.top  = (50 + (dy/rect.height)*100) + '%';
+  applyPuckWeights(dx, dy, maxR);
+}
+
+function springStep(){
+  const rect = cachedDeckRect || refreshDeckRect();
+  const maxR = rect.width/2 - (rect.width*0.075) - 4;
+  const stiffness = 0.22;
+  const damping = 0.74;
+
+  const ax = -puckPos.x * stiffness;
+  const ay = -puckPos.y * stiffness;
+  puckVel.x = (puckVel.x + ax) * damping;
+  puckVel.y = (puckVel.y + ay) * damping;
+  puckPos.x += puckVel.x;
+  puckPos.y += puckVel.y;
+
+  gainPuck.style.left = (50 + (puckPos.x/rect.width)*100) + '%';
+  gainPuck.style.top  = (50 + (puckPos.y/rect.height)*100) + '%';
+  applyPuckWeights(puckPos.x, puckPos.y, maxR);
+
+  const settled = Math.hypot(puckPos.x, puckPos.y) < 0.6 && Math.hypot(puckVel.x, puckVel.y) < 0.6;
+  if(!settled){
+    puckAnimReq = requestAnimationFrame(springStep);
+  } else {
+    puckPos.x = 0; puckPos.y = 0; puckVel.x = 0; puckVel.y = 0;
+    gainPuck.style.left = '50%'; gainPuck.style.top = '50%';
+    applyPuckWeights(0, 0, maxR);
+    puckAnimReq = null;
+  }
+}
+
+function puckPointerDown(e){
+  if(puckAnimReq){ cancelAnimationFrame(puckAnimReq); puckAnimReq = null; }
+  refreshDeckRect();
+  puckDragging = true;
+  try{ stemDeckEl.setPointerCapture(e.pointerId); }catch(err){}
+  setPuckFromClient(e.clientX, e.clientY);
+  e.stopPropagation();
+}
+gainPuck.addEventListener('pointerdown', puckPointerDown);
+stemDeckEl.addEventListener('pointerdown', puckPointerDown);
+stemDeckEl.addEventListener('pointermove', (e)=>{ if(puckDragging) setPuckFromClient(e.clientX, e.clientY); });
+['pointerup','pointercancel'].forEach(evt=>{
+  stemDeckEl.addEventListener(evt, ()=>{
+    if(!puckDragging) return;
+    puckDragging = false;
+    puckVel.x = 0; puckVel.y = 0;
+    puckAnimReq = requestAnimationFrame(springStep);
+  });
+});
+</script>
+</body>
+</html>
