@@ -193,6 +193,63 @@
     flex-shrink:0; white-space:nowrap;
   }
 
+  /* ---------- last-tracks button + panel (bottom, above player bar) ---------- */
+  #lastTracksBtn{
+    position:fixed; bottom: calc(clamp(14px,2.4vw,26px) + 56px); left:50%;
+    transform: translate(calc(-50% + var(--dx,0px)), var(--dy,0px));
+    z-index:25; display:flex; align-items:center; gap:8px;
+    padding:10px 18px; border-radius:999px;
+    background: rgba(20,20,18,0.6);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: blur(16px) saturate(140%);
+    border:1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    color:var(--ink); font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:.04em;
+    cursor:pointer; touch-action:none; white-space:nowrap;
+  }
+  #lastTracksBtn svg{ width:15px; height:15px; flex-shrink:0; }
+  #lastTracksBtn:hover{ background: rgba(30,30,28,0.75); }
+
+  #lastTracksPanel{
+    position:fixed; left:50%; bottom: calc(clamp(14px,2.4vw,26px) + 56px + 52px);
+    transform: translateX(-50%);
+    z-index:26; width:min(90vw,380px); max-height:46vh; overflow-y:auto;
+    padding:14px; border-radius:20px;
+    background: rgba(18,18,16,0.88);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+    border:1px solid rgba(255,255,255,0.16);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+  }
+  .ltHead{
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .ltHead button{
+    background:transparent; border:1px solid rgba(255,255,255,0.18); border-radius:50%;
+    width:24px; height:24px; color:var(--ink); cursor:pointer; font-size:12px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .ltItem{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    width:100%; padding:11px 13px; border-radius:12px; margin-bottom:6px;
+    background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+    color:var(--ink); font-family:'Manrope',sans-serif; font-size:13px; font-weight:500;
+    cursor:pointer; text-align:left;
+  }
+  .ltItem:last-child{ margin-bottom:0; }
+  .ltItem:hover{ background: rgba(255,255,255,0.12); }
+  .ltItem small{
+    display:block; color:var(--ink-soft); font-family:'JetBrains Mono',monospace;
+    font-size:10px; margin-top:2px; font-weight:400; letter-spacing:.03em;
+  }
+  .ltItem .ltPlayIcon{ opacity:.7; flex-shrink:0; }
+  .ltEmpty{
+    color:var(--ink-soft); font-family:'JetBrains Mono',monospace; font-size:11.5px;
+    padding:14px 4px; text-align:center;
+  }
+
   #settingsPanel{
     position:fixed; top:0; right:0; height:100%; width:min(320px,86vw);
     z-index:40; transform:translateX(100%); transition:transform .28s ease;
@@ -407,10 +464,9 @@
     <span>YouTube</span>
   </button>
 </div>
-<input type="file" id="importFileInput" accept="audio/*" style="display:none;">
 <input type="file" id="importStemsInput" accept="audio/*" multiple style="display:none;">
 
-<div id="songTitle" class="editable">Немає доріжки — <b>імпортуй трек</b></div>
+<div id="songTitle" class="editable">Завантаження треку очікування…</div>
 
 <button id="settingsBtn" aria-label="Налаштування">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -573,6 +629,13 @@
         <span class="switchTrack"></span>
       </label>
     </div>
+    <div class="toggleRow">
+      <span>Кнопка «Останні треки»</span>
+      <label class="switch">
+        <input type="checkbox" id="toggleLastTracksBtn" checked>
+        <span class="switchTrack"></span>
+      </label>
+    </div>
   </div>
 </div>
 <div id="glassPanel" class="noGlass">
@@ -604,13 +667,31 @@
 </div>
 </div>
 
+<button id="lastTracksBtn" class="editable" aria-label="Останні треки" title="Останні треки">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M12 7v5l3 3"/>
+  </svg>
+  <span>Останні треки</span>
+</button>
+
+<div id="lastTracksPanel" class="hiddenEl">
+  <div class="ltHead">
+    <span>Останні треки</span>
+    <button id="closeLastTracks" aria-label="Закрити">✕</button>
+  </div>
+  <div id="lastTracksList">
+    <div class="ltEmpty">Завантаження списку…</div>
+  </div>
+</div>
+
 <div id="playerBar" class="editable">
   <div id="dragHandle"><span></span><span></span><span></span></div>
   <button id="playPauseBtn" aria-label="Відтворити">
     <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8V4z"/></svg>
   </button>
   <input type="range" id="seekRange" min="0" max="100" step="0.1" value="0">
-  <div id="timeLabel">0:00 / 3:00</div>
+  <div id="timeLabel">0:00 / 0:00</div>
 </div>
 
 <script>
@@ -750,8 +831,7 @@ function drawWave(i, colorSet, t){
   ctx.stroke();
 }
 
-// ---------- Real audio engine (talks to the Python backend) ----------
-const API_BASE = ''; // same origin — Flask serves this page and the API
+// ---------- Real audio engine (static files served directly by Vercel — no backend) ----------
 let audioCtx = null;
 let masterGain = null;
 const stemBuffers = [null,null,null,null];
@@ -762,6 +842,7 @@ let pausedOffset = 0;
 let audioLoaded = false;
 let audioDuration = 0;
 let currentSongName = null;
+let loopCurrent = false; // true while the /loading/ waiting-room track is active
 const STEM_ORDER = ["bass","drums","other","vocals"]; // wave 0 (bottom/front) = bass … wave 3 (top/back) = vocals
 const STEM_LABELS_UI = ["Бас","Барабани","Музика","Вокал"];
 const FOLDER_PATTERNS = {
@@ -793,18 +874,20 @@ function stopSources(){
   sources = [];
 }
 
-function schedulePlayback(offset){
+function schedulePlayback(offset, loop=false){
   stopSources();
   const startAt = audioCtx.currentTime + 0.05;
+  const safeOffset = loop ? (offset % audioDuration + audioDuration) % audioDuration : Math.max(0, offset);
   for(let i=0;i<4;i++){
     if(!stemBuffers[i]) continue;
     const src = audioCtx.createBufferSource();
     src.buffer = stemBuffers[i];
+    src.loop = loop;
     src.connect(stemGains[i]);
-    src.start(startAt, Math.max(0, offset));
+    src.start(startAt, safeOffset);
     sources.push(src);
   }
-  playStartCtxTime = startAt - offset;
+  playStartCtxTime = startAt - safeOffset;
 }
 
 // ---- per-stem analysers: real frequency data drives the waves, real RMS drives the beat pulses ----
@@ -859,111 +942,6 @@ function finalizeAudioLoad(){
   setPlayIcon(false);
 }
 
-// ---------- Demo stems: synthesized on the fly so there's always something playing while you wait ----------
-// A calmer, more melodic loop than a synth-pop stab — soft rolling bass, brushed drums, warm pad, gentle vocal-ish lead.
-let demoBuffers = null;
-let demoActive = false;
-let demoSources = [];
-
-function synthDemoChannel(kind, sr){
-  const dur = 6; // seconds — short seamless loop
-  const len = Math.floor(dur*sr);
-  const data = new Float32Array(len);
-  const bpm = 84;
-  const beatLen = 60/bpm;
-  // gentle A-minor-ish progression: Am - F - C - G, one chord per 1.5 bars
-  const chordRoots = [110.00, 87.31, 65.41, 98.00]; // A2, F2, C2, G2
-  const chordNotes = [
-    [220.00, 261.63, 329.63], // Am
-    [174.61, 220.00, 261.63], // F
-    [130.81, 164.81, 196.00], // C
-    [196.00, 246.94, 293.66], // G
-  ];
-  for(let n=0;n<len;n++){
-    const time = n/sr;
-    const beatPhase = (time % beatLen) / beatLen;
-    const beatIndex = Math.floor(time/beatLen);
-    const chordIndex = Math.floor(time / (dur/4)) % 4;
-    let s = 0;
-    if(kind === 'bass'){
-      const root = chordRoots[chordIndex];
-      const env = Math.exp(-beatPhase*3.2) * 0.85 + 0.15;
-      s = Math.sin(2*Math.PI*root*time) * env * 0.9;
-    } else if(kind === 'drums'){
-      const isKick = beatIndex % 2 === 0;
-      const kick = isKick ? Math.sin(2*Math.PI*52*time) * Math.exp(-beatPhase*16) : 0;
-      const hatPhase = (time % (beatLen/2)) / (beatLen/2);
-      const hat = (Math.random()*2-1) * Math.exp(-hatPhase*30) * 0.08;
-      const shakerPhase = (time % (beatLen/4)) / (beatLen/4);
-      const shaker = (Math.random()*2-1) * Math.exp(-shakerPhase*24) * 0.05;
-      s = kick*0.8 + hat + shaker;
-    } else if(kind === 'other'){
-      const notes = chordNotes[chordIndex];
-      const swell = 0.5 + 0.35*Math.sin(2*Math.PI*(time/(dur/2)));
-      s = notes.reduce((sum,f)=> sum + Math.sin(2*Math.PI*f*time)*0.13, 0) * swell;
-    } else { // vocals — soft, slow, wordless lead line
-      const notes = chordNotes[chordIndex];
-      const lead = notes[notes.length-1]; // top note of current chord
-      const vibrato = Math.sin(2*Math.PI*4.5*time) * 3;
-      const seg = dur/4;
-      const localT = time % seg;
-      const env = Math.sin(Math.PI * Math.min(1, localT/(seg*0.85)));
-      s = Math.sin(2*Math.PI*(lead+vibrato)*time) * Math.max(0,env) * 0.4;
-    }
-    data[n] = Math.max(-1, Math.min(1, s));
-  }
-  return data;
-}
-
-function buildDemoBuffersIfNeeded(){
-  if(demoBuffers) return demoBuffers;
-  const sr = audioCtx.sampleRate;
-  demoBuffers = STEM_ORDER.map(kind=>{
-    const data = synthDemoChannel(kind, sr);
-    const buf = audioCtx.createBuffer(1, data.length, sr);
-    buf.copyToChannel(data, 0);
-    return buf;
-  });
-  return demoBuffers;
-}
-
-function stopDemoStems(){
-  if(!demoActive) return;
-  demoSources.forEach(s=>{ try{ s.stop(); }catch(e){} });
-  demoSources = [];
-  demoActive = false;
-}
-
-// Plays instantly — call this the moment an import starts, so there's music and moving waves while the real track loads
-function playDemoStems(){
-  ensureAudioCtx();
-  if(audioCtx.state === 'suspended') audioCtx.resume();
-  if(demoActive) return;
-
-  resetStemAudio();
-  const buffers = buildDemoBuffersIfNeeded();
-  for(let i=0;i<4;i++) attachStemBuffer(i, buffers[i], STEM_LABELS_UI[i]);
-  ensureMasterAnalyser();
-  audioLoaded = true;
-  demoActive = true;
-
-  const startAt = audioCtx.currentTime + 0.05;
-  demoSources = [];
-  for(let i=0;i<4;i++){
-    const src = audioCtx.createBufferSource();
-    src.buffer = stemBuffers[i];
-    src.loop = true;
-    src.connect(stemGains[i]);
-    src.start(startAt);
-    demoSources.push(src);
-  }
-  sources = demoSources;
-  playStartCtxTime = startAt;
-  isPlaying = true;
-  setPlayIcon(true);
-  trackNameEls.forEach(el=>{ el.textContent = el.textContent.replace(/·.*/, '· грає (демо)'); });
-}
-
 function ensureMasterAnalyser(){
   if(!masterAnalyser){
     masterAnalyser = audioCtx.createAnalyser();
@@ -980,30 +958,73 @@ function rmsFromAnalyser(analyser, buffer){
   return Math.sqrt(sum/buffer.length);
 }
 
-async function loadStemsIntoAudio(stems){
-  ensureAudioCtx();
-  resetStemAudio();
-  const byKey = {};
-  stems.forEach(s=> byKey[s.key] = s);
-  let done = 0;
-  const jobs = [];
-  for(let i=0;i<4;i++){
-    const s = byKey[STEM_ORDER[i]];
-    if(!s) continue;
-    jobs.push((async ()=>{
-      const resp = await fetch(API_BASE + s.url);
-      const arr = await resp.arrayBuffer();
-      await attachStemFromArrayBuffer(i, arr, s.label);
-      done++;
-      songTitleEl.innerHTML = `Завантаження стемів… <b>${done}/4</b>`;
-    })());
-  }
-  await Promise.all(jobs); // decode in parallel instead of one-by-one — much faster
-  finalizeAudioLoad();
-  stopDemoStems();
+// ---------- Static stem sets: /loading/{key}.mp3 and /last/{id}/{key}.mp3 ----------
+function stemFilesFor(basePath){
+  return STEM_ORDER.map((key,i)=> ({ key, label: STEM_LABELS_UI[i], url: `/${basePath}/${key}.mp3` }));
 }
 
-// Load 4 already-separated stem files directly — no Demucs round-trip needed at all.
+// resume:false is used for the silent preload on page load (no user gesture yet, so we only decode,
+// we never start playback there). resume:true is used everywhere a click already happened.
+async function loadStemSet(basePath, { loop=false, resume=true, onProgress=null } = {}){
+  ensureAudioCtx();
+  if(resume && audioCtx.state === 'suspended'){
+    try{ await audioCtx.resume(); }catch(e){}
+  }
+  resetStemAudio();
+  const stems = stemFilesFor(basePath);
+  let done = 0;
+  await Promise.all(stems.map(async s=>{
+    const resp = await fetch(s.url);
+    if(!resp.ok) throw new Error(`не вдалося завантажити ${s.url}`);
+    const arr = await resp.arrayBuffer();
+    await attachStemFromArrayBuffer(STEM_ORDER.indexOf(s.key), arr, s.label);
+    done++;
+    if(onProgress) onProgress(done, stems.length);
+  }));
+  finalizeAudioLoad();
+  loopCurrent = loop;
+}
+
+// Loads the waiting-room track from /loading/ the moment the page opens. Doesn't autoplay
+// (browsers block audio before a user gesture) — it just gets ready so Play works instantly.
+async function preloadLoadingTrack(){
+  try{
+    currentSongName = 'Трек очікування';
+    await loadStemSet('loading', { loop:true, resume:false });
+    songTitleEl.innerHTML = `Готово: <b>трек очікування</b> · натисни ▶`;
+  } catch(err){
+    console.error(err);
+    songTitleEl.innerHTML = `Трек очікування недоступний`;
+  }
+}
+window.addEventListener('load', preloadLoadingTrack);
+
+// Loads one of the last 5 separated songs from /last/{id}/ and plays it immediately
+// (this is always triggered by a click, so autoplay is allowed).
+async function loadLastSong(id, name){
+  currentSongName = name;
+  songTitleEl.innerHTML = `Завантаження… <b>${name}</b>`;
+  try{
+    await loadStemSet(`last/${id}`, {
+      loop: false,
+      resume: true,
+      onProgress: (done, total)=>{ songTitleEl.innerHTML = `Завантаження… <b>${done}/${total}</b>`; }
+    });
+  } catch(err){
+    console.error(err);
+    songTitleEl.innerHTML = `Помилка завантаження треку`;
+    return;
+  }
+  songTitleEl.innerHTML = `Зараз: <b>${name}</b>`;
+  schedulePlayback(0, false);
+  isPlaying = true;
+  pausedOffset = 0;
+  setPlayIcon(true);
+  trackNameEls.forEach(el=>{ el.textContent = el.textContent.replace(/·.*/, '· грає'); });
+}
+
+// Loads 4 already-separated stem files the user picks locally — pure client-side, works
+// on Vercel with no backend at all.
 async function loadLocalStemFiles(fileList){
   ensureAudioCtx();
   resetStemAudio();
@@ -1037,51 +1058,14 @@ async function loadLocalStemFiles(fileList){
       songTitleEl.innerHTML = `Розпаковка семплів… <b>${done}/${total}</b>`;
     })());
   }
-  await Promise.all(jobs); // parallel decode — 4 big WAVs decode concurrently instead of one-by-one
+  await Promise.all(jobs); // parallel decode — 4 big WAVs/MP3s decode concurrently instead of one-by-one
   finalizeAudioLoad();
-  stopDemoStems();
+  loopCurrent = false;
   songTitleEl.innerHTML = `Зараз: <b>${currentSongName || '4 семпли'}</b>`;
 }
 
-function pollSeparationJob(jobId){
-  const poll = async ()=>{
-    try{
-      const r = await fetch(API_BASE + '/api/status/' + jobId);
-      const job = await r.json();
-      if(job.status === 'running'){
-        songTitleEl.innerHTML = `Розділення… <b>${job.progress}%</b>`;
-        setTimeout(poll, 800);
-      } else if(job.status === 'done'){
-        songTitleEl.innerHTML = 'Завантаження стемів у плеєр…';
-        await loadStemsIntoAudio(job.stems);
-        songTitleEl.innerHTML = `Зараз: <b>${currentSongName || 'Трек'}</b>`;
-      } else {
-        songTitleEl.innerHTML = `Помилка: <b>${(job.message||'невідома').slice(0,60)}</b>`;
-      }
-    } catch(err){
-      songTitleEl.innerHTML = `Помилка з'єднання з сервером`;
-    }
-  };
-  poll();
-}
-
-async function startSeparationFlow(path){
-  songTitleEl.innerHTML = 'Розділення… <b>0%</b>';
-  try{
-    const resp = await fetch(API_BASE + '/api/separate', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({path, n_stems:4})
-    });
-    const data = await resp.json();
-    if(data.error){ songTitleEl.innerHTML = `Помилка: <b>${data.error}</b>`; return; }
-    pollSeparationJob(data.job_id);
-  } catch(err){
-    songTitleEl.innerHTML = `Помилка з'єднання з сервером`;
-  }
-}
-
 // ---------- Player state ----------
-const FAKE_DURATION = 180; // 3:00 fallback demo duration when no real track is loaded
+const FAKE_DURATION = 180; // 3:00 fallback demo duration if nothing has loaded at all yet
 let currentTime = 0;
 let isPlaying = false;
 let isSeeking = false;
@@ -1133,10 +1117,10 @@ function draw(ts){
   if(audioLoaded){
     if(isPlaying && !isSeeking){
       const cur = audioCtx.currentTime - playStartCtxTime;
-      if(demoActive){
+      if(loopCurrent){
         const loopCur = cur % audioDuration;
         seekRange.value = (loopCur/audioDuration)*100;
-        timeLabel.textContent = 'демо · ' + fmtTime(loopCur) + ' / ' + fmtTime(audioDuration);
+        timeLabel.textContent = 'петля · ' + fmtTime(loopCur) + ' / ' + fmtTime(audioDuration);
       } else if(cur >= audioDuration){
         stopSources(); isPlaying = false; pausedOffset = 0;
         setPlayIcon(false);
@@ -1164,40 +1148,22 @@ function setPlayIcon(playing){
     : '<path d="M6 4l14 8-14 8V4z"/>';
 }
 
-playPauseBtn.addEventListener('click', ()=>{
+playPauseBtn.addEventListener('click', async ()=>{
   if(!audioLoaded){
-    // demo fallback: no real track loaded yet, just animate the fake progress
-    isPlaying = !isPlaying;
-    setPlayIcon(isPlaying);
-    trackNameEls.forEach((el)=>{
-      el.textContent = el.textContent.replace(/·.*/, '· ' + (isPlaying ? 'грає' : 'на паузі'));
-    });
-    return;
+    // nothing decoded yet (preload may still be in flight or failed) — try once more
+    await preloadLoadingTrack();
+    if(!audioLoaded) return;
   }
 
   ensureAudioCtx();
-  if(audioCtx.state === 'suspended') audioCtx.resume();
+  if(audioCtx.state === 'suspended') await audioCtx.resume();
 
   if(!isPlaying){
-    if(demoActive){
-      const startAt = audioCtx.currentTime + 0.03;
-      demoSources = [];
-      for(let i=0;i<4;i++){
-        const src = audioCtx.createBufferSource();
-        src.buffer = stemBuffers[i];
-        src.loop = true;
-        src.connect(stemGains[i]);
-        src.start(startAt, (pausedOffset % audioDuration));
-        demoSources.push(src);
-      }
-      sources = demoSources;
-      playStartCtxTime = startAt - pausedOffset;
-    } else {
-      schedulePlayback(pausedOffset >= audioDuration ? 0 : pausedOffset);
-    }
+    schedulePlayback(pausedOffset >= audioDuration && !loopCurrent ? 0 : pausedOffset, loopCurrent);
     isPlaying = true;
   } else {
-    pausedOffset = audioCtx.currentTime - playStartCtxTime;
+    let cur = audioCtx.currentTime - playStartCtxTime;
+    pausedOffset = loopCurrent ? (cur % audioDuration) : cur;
     stopSources();
     isPlaying = false;
   }
@@ -1212,7 +1178,7 @@ seekRange.addEventListener('input', (e)=>{
   if(audioLoaded){
     const target = (e.target.value/100) * audioDuration;
     if(isPlaying){
-      schedulePlayback(target);
+      schedulePlayback(target, loopCurrent);
     } else {
       pausedOffset = target;
     }
@@ -1233,14 +1199,16 @@ const glassPanelEl = document.getElementById('glassPanel');
 const stemGroupEl = document.getElementById('stemGroup');
 const songTitleEl = document.getElementById('songTitle');
 
-// ---------- Import menu: choose "single file to split" vs "4 ready-made stems" ----------
+// ---------- Import menu ----------
+// "Один файл" (auto-split) and "YouTube" both need a Demucs backend that isn't deployed
+// alongside this static site — they show a message pointing at "Останні треки"/"4 готові семпли"
+// instead of failing silently. "4 готові семпли" stays fully client-side and keeps working.
 const importBtn = document.getElementById('importBtn');
 const importMenu = document.getElementById('importMenu');
 const importFileWrap = document.getElementById('importFileWrap');
 const importSingleBtn = document.getElementById('importSingleBtn');
 const importStemsBtn = document.getElementById('importStemsBtn');
 const ytImportBtn = document.getElementById('ytImportBtn');
-const importFileInput = document.getElementById('importFileInput');
 const importStemsInput = document.getElementById('importStemsInput');
 
 importBtn.addEventListener('click', (e)=>{
@@ -1254,66 +1222,84 @@ document.addEventListener('click', (e)=>{
 importSingleBtn.addEventListener('click', (e)=>{
   e.stopPropagation();
   importMenu.classList.add('hiddenEl');
-  importFileInput.click();
+  songTitleEl.innerHTML = 'Авто-розділення поки недоступне тут · спробуй «Останні треки» нижче';
 });
 importStemsBtn.addEventListener('click', (e)=>{
   e.stopPropagation();
   importMenu.classList.add('hiddenEl');
   importStemsInput.click();
 });
-
-importFileInput.addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  currentSongName = file.name.replace(/\.[^/.]+$/, '');
-  playDemoStems();
-  songTitleEl.innerHTML = `Завантаження файлу… <b>${currentSongName}</b> · грає демо, поки чекаєш`;
-  try{
-    const fd = new FormData();
-    fd.append('file', file);
-    const resp = await fetch(API_BASE + '/api/upload', { method:'POST', body: fd });
-    const data = await resp.json();
-    if(data.error){ songTitleEl.innerHTML = `Помилка: <b>${data.error}</b>`; return; }
-    startSeparationFlow(data.path);
-  } catch(err){
-    songTitleEl.innerHTML = `Помилка з'єднання з сервером`;
-  }
-  importFileInput.value = '';
+ytImportBtn.addEventListener('click', ()=>{
+  songTitleEl.innerHTML = 'YouTube-імпорт поки недоступний тут · спробуй «Останні треки» нижче';
 });
 
 importStemsInput.addEventListener('change', async (e)=>{
   const files = e.target.files;
   if(!files || !files.length) return;
   currentSongName = '4 семпли';
-  playDemoStems();
-  songTitleEl.innerHTML = `Розпаковка семплів… грає демо, поки чекаєш`;
+  songTitleEl.innerHTML = `Розпаковка семплів…`;
   try{
     ensureAudioCtx();
     if(audioCtx.state === 'suspended') await audioCtx.resume();
     await loadLocalStemFiles(files);
+    schedulePlayback(0, false);
+    isPlaying = true;
+    pausedOffset = 0;
+    setPlayIcon(true);
+    trackNameEls.forEach(el=> el.textContent = el.textContent.replace(/·.*/, '· грає'));
   } catch(err){
     songTitleEl.innerHTML = `Помилка завантаження семплів`;
   }
   importStemsInput.value = '';
 });
 
-ytImportBtn.addEventListener('click', async ()=>{
-  const url = prompt('Встав посилання на YouTube:');
-  if(!url) return;
-  playDemoStems();
-  songTitleEl.innerHTML = 'Завантаження з YouTube… грає демо, поки чекаєш';
-  try{
-    const resp = await fetch(API_BASE + '/api/youtube', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ url })
+// ---------- Last tracks: fetch /last/manifest.json, list the songs, play on tap ----------
+const lastTracksBtn = document.getElementById('lastTracksBtn');
+const lastTracksPanel = document.getElementById('lastTracksPanel');
+const closeLastTracks = document.getElementById('closeLastTracks');
+const lastTracksList = document.getElementById('lastTracksList');
+let lastManifestCache = null;
+
+async function openLastTracksPanel(){
+  lastTracksPanel.classList.remove('hiddenEl');
+  if(!lastManifestCache){
+    lastTracksList.innerHTML = '<div class="ltEmpty">Завантаження списку…</div>';
+    try{
+      const resp = await fetch('/last/manifest.json');
+      lastManifestCache = await resp.json();
+    } catch(err){
+      lastTracksList.innerHTML = '<div class="ltEmpty">Не вдалося завантажити список</div>';
+      return;
+    }
+  }
+  renderLastTracksList();
+}
+
+function renderLastTracksList(){
+  if(!lastManifestCache || !lastManifestCache.length){
+    lastTracksList.innerHTML = '<div class="ltEmpty">Поки немає збережених треків</div>';
+    return;
+  }
+  lastTracksList.innerHTML = '';
+  lastManifestCache.forEach(entry=>{
+    const btn = document.createElement('button');
+    btn.className = 'ltItem';
+    btn.innerHTML = `<span>${entry.name}<small>бас · барабани · музика · вокал</small></span><span class="ltPlayIcon">▶</span>`;
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      lastTracksPanel.classList.add('hiddenEl');
+      loadLastSong(entry.id, entry.name);
     });
-    const data = await resp.json();
-    if(data.error){ songTitleEl.innerHTML = `Помилка: <b>${data.error}</b>`; return; }
-    currentSongName = data.filename.replace(/\.[^/.]+$/, '');
-    songTitleEl.innerHTML = `Завантажено: <b>${currentSongName}</b>`;
-    startSeparationFlow(data.path);
-  } catch(err){
-    songTitleEl.innerHTML = `Помилка з'єднання з сервером`;
+    lastTracksList.appendChild(btn);
+  });
+}
+
+lastTracksBtn.addEventListener('click', (e)=>{ e.stopPropagation(); openLastTracksPanel(); });
+lastTracksBtn.addEventListener('pointerdown', (e)=> e.stopPropagation());
+closeLastTracks.addEventListener('click', (e)=>{ e.stopPropagation(); lastTracksPanel.classList.add('hiddenEl'); });
+document.addEventListener('click', (e)=>{
+  if(!lastTracksPanel.classList.contains('hiddenEl') && !lastTracksPanel.contains(e.target) && !lastTracksBtn.contains(e.target)){
+    lastTracksPanel.classList.add('hiddenEl');
   }
 });
 
@@ -1532,6 +1518,12 @@ stemDeckEl.addEventListener('pointermove', (e)=>{ if(puckDragging) setPuckFromCl
     puckVel.x = 0; puckVel.y = 0;
     puckAnimReq = requestAnimationFrame(springStep);
   });
+});
+
+// ---------- Object toggles (settings panel) ----------
+document.getElementById('toggleLastTracksBtn').addEventListener('change', (e)=>{
+  lastTracksBtn.classList.toggle('hiddenEl', !e.target.checked);
+  if(!e.target.checked) lastTracksPanel.classList.add('hiddenEl');
 });
 </script>
 </body>
