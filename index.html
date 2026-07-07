@@ -88,7 +88,7 @@
     max-width:44ch;
   }
 
-  #settingsBtn{
+  #lastTracksBtn{
     position:fixed; top: clamp(10px,2vw,18px); right: clamp(10px,2vw,18px);
     z-index:30; width:42px; height:42px; border-radius:50%;
     background: rgba(20,20,18,0.6);
@@ -97,9 +97,11 @@
     border:1px solid rgba(255,255,255,0.18);
     color:var(--ink); display:flex; align-items:center; justify-content:center;
     cursor:pointer;
+    touch-action:none;
   }
-  #settingsBtn svg{width:19px;height:19px;}
-  #settingsBtn:hover{ background: rgba(30,30,28,0.75); }
+  #lastTracksBtn svg{width:19px;height:19px;flex-shrink:0;}
+  #lastTracksBtn span{ display:none; }
+  #lastTracksBtn:hover{ background: rgba(30,30,28,0.75); }
 
   #importControls{
     position:fixed; top: clamp(10px,2vw,18px); left: clamp(10px,2vw,18px);
@@ -141,6 +143,26 @@
   #importMenu button:hover{ background: rgba(255,255,255,0.1); }
   #importMenu button small{ display:block; color:var(--ink-soft); font-size:10px; margin-top:2px; }
 
+  /* ---------- transient status/log (left side, appears only while something is happening) ---------- */
+  #statusLog{
+    position:fixed; top: calc(clamp(10px,2vw,18px) + 42px + 10px); left: clamp(10px,2vw,18px);
+    transform: translate(var(--dx,0px), var(--dy,0px));
+    z-index:20; max-width:min(74vw, 360px);
+    padding:9px 16px; border-radius:16px;
+    background: rgba(20,20,18,0.55);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border:1px solid rgba(255,255,255,0.16);
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.03em;
+    color:var(--ink-soft);
+    white-space:normal; overflow-wrap:break-word; word-break:break-word;
+    text-align:left; line-height:1.4;
+    opacity:0; pointer-events:none;
+    transition: opacity .4s ease;
+  }
+  #statusLog.visible{ opacity:1; }
+  #statusLog b{ color:var(--ink); font-weight:500; }
+
   /* ---------- song title (own row, below the top icon row — never overlaps them) ---------- */
   #songTitle{
     position:fixed; top: calc(clamp(10px,2vw,18px) + 42px + 10px); left:50%;
@@ -161,7 +183,7 @@
 
   /* ---------- player bar (bottom center) ---------- */
   #playerBar{
-    position:fixed; bottom: clamp(14px,2.4vw,26px); left:50%;
+    position:fixed; bottom: clamp(38px,6vw,64px); left:50%;
     transform: translate(calc(-50% + var(--dx,0px)), var(--dy,0px));
     z-index:25; display:flex; align-items:center; gap:12px;
     padding:10px 16px 10px 10px; border-radius:999px;
@@ -193,27 +215,9 @@
     flex-shrink:0; white-space:nowrap;
   }
 
-  /* ---------- last-tracks button + panel (bottom, above player bar) ---------- */
-  #lastTracksBtn{
-    position:fixed; bottom: calc(clamp(14px,2.4vw,26px) + 56px); left:50%;
-    transform: translate(calc(-50% + var(--dx,0px)), var(--dy,0px));
-    z-index:25; display:flex; align-items:center; gap:8px;
-    padding:10px 18px; border-radius:999px;
-    background: rgba(20,20,18,0.6);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    backdrop-filter: blur(16px) saturate(140%);
-    border:1px solid rgba(255,255,255,0.18);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-    color:var(--ink); font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:.04em;
-    cursor:pointer; touch-action:none; white-space:nowrap;
-  }
-  #lastTracksBtn svg{ width:15px; height:15px; flex-shrink:0; }
-  #lastTracksBtn:hover{ background: rgba(30,30,28,0.75); }
-
   #lastTracksPanel{
-    position:fixed; left:50%; bottom: calc(clamp(14px,2.4vw,26px) + 56px + 52px);
-    transform: translateX(-50%);
-    z-index:26; width:min(90vw,380px); max-height:46vh; overflow-y:auto;
+    position:fixed; top: calc(clamp(10px,2vw,18px) + 42px + 10px); right: clamp(10px,2vw,18px);
+    z-index:26; width:min(90vw,340px); max-height:56vh; overflow-y:auto;
     padding:14px; border-radius:20px;
     background: rgba(18,18,16,0.88);
     -webkit-backdrop-filter: blur(20px) saturate(140%);
@@ -397,12 +401,12 @@
 
   #stemArms{ position:absolute; inset:0; z-index:1; pointer-events:none; }
   .stemArmDot{
-    position:absolute; transform:translate(-50%,-50%);
+    position:absolute; transform:translate(-50%,-50%) scale(var(--dot-scale, 1));
     width: 6px; height:6px; border-radius:50%;
     background: var(--arm-color, #888);
     opacity: calc(0.16 + 0.84*var(--frac,0));
     box-shadow: 0 0 calc(3px + 9px*var(--frac,0)) var(--arm-color, #888);
-    transition: opacity .08s linear;
+    transition: opacity .08s linear, left .08s linear, top .08s linear;
   }
   .stemArmLabel{
     position:absolute; transform:translate(-50%,-50%);
@@ -453,7 +457,7 @@
     </button>
     <div id="importMenu" class="hiddenEl">
       <button id="importSingleBtn">🎵 Один файл <small>(розділю на 4 стеми)</small></button>
-      <button id="importStemsBtn">🧩 4 готові семпли <small>(бас/барабани/муз./вокал)</small></button>
+      <button id="importStemsBtn">🧩 Готові семпли <small>(бас/барабани/муз./вокал/піаніно/гітара…)</small></button>
     </div>
   </div>
   <button id="ytImportBtn" aria-label="Імпорт з YouTube" title="Імпортувати з YouTube">
@@ -466,14 +470,9 @@
 </div>
 <input type="file" id="importStemsInput" accept="audio/*" multiple style="display:none;">
 
-<div id="songTitle" class="editable">Завантаження треку очікування…</div>
+<div id="statusLog"></div>
 
-<button id="settingsBtn" aria-label="Налаштування">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-  </svg>
-</button>
+<div id="songTitle" class="editable">Завантаження треку очікування…</div>
 
 <div id="settingsPanel">
   <div class="settingsHead">
@@ -712,6 +711,22 @@ resize();
 const glassPanelEl = document.getElementById('glassPanel');
 const stemGroupEl = document.getElementById('stemGroup');
 const songTitleEl = document.getElementById('songTitle');
+const statusLogEl = document.getElementById('statusLog');
+
+// ---------- Transient status log (left side) — shows only while something is happening ----------
+let statusHideTimer = null;
+function showStatus(html, opts={}){
+  statusLogEl.innerHTML = html;
+  statusLogEl.classList.add('visible');
+  if(statusHideTimer){ clearTimeout(statusHideTimer); statusHideTimer = null; }
+  if(opts.autoHide !== false){
+    statusHideTimer = setTimeout(()=>{ statusLogEl.classList.remove('visible'); }, opts.duration || 2400);
+  }
+}
+function hideStatus(){
+  if(statusHideTimer){ clearTimeout(statusHideTimer); statusHideTimer = null; }
+  statusLogEl.classList.remove('visible');
+}
 
 const WAVE_COLORS = [
   {top:'#ffffff', bottom:'#e4e2db', stroke:'rgba(255,255,255,0.9)'},
@@ -850,11 +865,13 @@ let currentSongName = null;
 let loopCurrent = false; // true while the /loading/ waiting-room track is active
 const STEM_ORDER = ["bass","drums","other","vocals"]; // wave 0 (bottom/front) = bass … wave 3 (top/back) = vocals
 const STEM_LABELS_UI = ["Бас","Барабани","Музика","Вокал"];
+// Local-import detection: filenames don't have to be exactly these 4 words — piano/guitar/synth/etc
+// all fall into the "other" (instrumental) slot, since there are only 4 visual wave slots.
 const FOLDER_PATTERNS = {
   vocals: ["vocal","вокал","voice","vox","lead"],
   drums:  ["drum","барабан","perc","beat"],
   bass:   ["bass","бас"],
-  other:  ["other","music","музик","instrumental","instr","accomp"],
+  other:  ["other","music","музик","instrumental","instr","accomp","piano","піаніно","фортепіано","guitar","гітара","synth","синт","keys","клавіш","strings","струн","brass","дух"],
 };
 function detectStemKey(filename){
   const lname = filename.toLowerCase();
@@ -964,8 +981,25 @@ function rmsFromAnalyser(analyser, buffer){
 }
 
 // ---------- Static stem sets: /loading/{key}.mp3 and /last/{id}/{key}.mp3 ----------
+// Files may be exported either as "bass.mp3" or, due to some export tools, "bass .mp3"
+// (space before the extension) — both spellings are tried automatically.
 function stemFilesFor(basePath){
-  return STEM_ORDER.map((key,i)=> ({ key, label: STEM_LABELS_UI[i], url: `/${basePath}/${key}.mp3` }));
+  return STEM_ORDER.map((key,i)=> ({ key, label: STEM_LABELS_UI[i] }));
+}
+
+async function fetchStemFile(basePath, key){
+  const candidates = [`/${basePath}/${key}.mp3`, `/${basePath}/${key} .mp3`];
+  let lastErr = null;
+  for(const url of candidates){
+    try{
+      const resp = await fetch(url);
+      if(resp.ok) return resp;
+      lastErr = new Error('HTTP ' + resp.status + ' (' + url + ')');
+    } catch(err){
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('Не знайдено: ' + key);
 }
 
 // resume:false is used for the silent preload on page load (no user gesture yet, so we only decode,
@@ -981,15 +1015,14 @@ async function loadStemSet(basePath, { loop=false, resume=true, onProgress=null 
   const failures = [];
   await Promise.all(stems.map(async s=>{
     try{
-      const resp = await fetch(s.url);
-      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      const resp = await fetchStemFile(basePath, s.key);
       const arr = await resp.arrayBuffer();
       await attachStemFromArrayBuffer(STEM_ORDER.indexOf(s.key), arr, s.label);
       done++;
       if(onProgress) onProgress(done, stems.length);
     } catch(err){
-      console.error('Не вдалося завантажити', s.url, err);
-      failures.push(`${s.url} — ${err.message || err}`);
+      console.error('Не вдалося завантажити', s.key, err);
+      failures.push(`${s.key} — ${err.message || err}`);
     }
   }));
   if(failures.length){
@@ -1004,14 +1037,15 @@ async function loadStemSet(basePath, { loop=false, resume=true, onProgress=null 
 // Loads the waiting-room track from /loading/ the moment the page opens. Doesn't autoplay
 // (browsers block audio before a user gesture) — it just gets ready so Play works instantly.
 async function preloadLoadingTrack(){
-  songTitleEl.innerHTML = 'Завантаження треку очікування…';
+  showStatus('Завантаження треку очікування…', {autoHide:false});
   try{
     currentSongName = 'Трек очікування';
     await loadStemSet('loading', { loop:true, resume:false });
+    hideStatus();
     songTitleEl.innerHTML = `Готово: <b>трек очікування</b> · натисни ▶`;
   } catch(err){
     console.error(err);
-    songTitleEl.innerHTML = `Не вдалося завантажити: <b>${err.message || err}</b> · тапни, щоб спробувати ще раз`;
+    showStatus(`Не вдалося завантажити: <b>${err.message || err}</b>`, {duration: 4000});
   }
 }
 window.addEventListener('load', preloadLoadingTrack);
@@ -1021,18 +1055,19 @@ songTitleEl.addEventListener('click', ()=>{ if(!audioLoaded) preloadLoadingTrack
 // (this is always triggered by a click, so autoplay is allowed).
 async function loadLastSong(id, name){
   currentSongName = name;
-  songTitleEl.innerHTML = `Завантаження… <b>${name}</b>`;
+  showStatus(`Завантаження… <b>${name}</b>`, {autoHide:false});
   try{
     await loadStemSet(`last/${id}`, {
       loop: false,
       resume: true,
-      onProgress: (done, total)=>{ songTitleEl.innerHTML = `Завантаження… <b>${done}/${total}</b>`; }
+      onProgress: (done, total)=>{ showStatus(`Завантаження… <b>${name}</b> (${done}/${total})`, {autoHide:false}); }
     });
   } catch(err){
     console.error(err);
-    songTitleEl.innerHTML = `Не вдалося завантажити «${name}»: <b>${err.message || err}</b>`;
+    showStatus(`Не вдалося завантажити «${name}»: <b>${err.message || err}</b>`, {duration: 4000});
     return;
   }
+  hideStatus();
   songTitleEl.innerHTML = `Зараз: <b>${name}</b>`;
   schedulePlayback(0, false);
   isPlaying = true;
@@ -1041,8 +1076,9 @@ async function loadLastSong(id, name){
   trackNameEls.forEach(el=>{ el.textContent = el.textContent.replace(/·.*/, '· грає'); });
 }
 
-// Loads 4 already-separated stem files the user picks locally — pure client-side, works
-// on Vercel with no backend at all.
+// Loads already-separated stem files the user picks locally — pure client-side, works
+// on Vercel with no backend at all. Filenames are matched loosely (bass/drums/vocals/
+// piano/guitar/synth/etc all map onto one of the 4 wave slots).
 async function loadLocalStemFiles(fileList){
   ensureAudioCtx();
   resetStemAudio();
@@ -1073,13 +1109,14 @@ async function loadLocalStemFiles(fileList){
       const arr = await slots[i].arrayBuffer();
       await attachStemFromArrayBuffer(i, arr, STEM_LABELS_UI[i]);
       done++;
-      songTitleEl.innerHTML = `Розпаковка семплів… <b>${done}/${total}</b>`;
+      showStatus(`Розпаковка семплів… (${done}/${total})`, {autoHide:false});
     })());
   }
   await Promise.all(jobs); // parallel decode — 4 big WAVs/MP3s decode concurrently instead of one-by-one
   finalizeAudioLoad();
   loopCurrent = false;
-  songTitleEl.innerHTML = `Зараз: <b>${currentSongName || '4 семпли'}</b>`;
+  hideStatus();
+  songTitleEl.innerHTML = `Зараз: <b>${currentSongName || 'семпли'}</b>`;
 }
 
 // ---------- Player state ----------
@@ -1130,7 +1167,7 @@ function draw(ts){
   updateBeatPulses(t);
   updateRingRotation(dt);
   frameCounter++;
-  if(frameCounter % 2 === 0) updateStemArms();
+  updateStemArms(t);
 
   if(audioLoaded){
     if(isPlaying && !isSeeking){
@@ -1214,8 +1251,8 @@ playPauseBtn.addEventListener('pointerdown', (e)=> e.stopPropagation());
 
 // ---------- Import menu ----------
 // "Один файл" (auto-split) and "YouTube" both need a Demucs backend that isn't deployed
-// alongside this static site — they show a message pointing at "Останні треки"/"4 готові семпли"
-// instead of failing silently. "4 готові семпли" stays fully client-side and keeps working.
+// alongside this static site — they show a message pointing at "Останні треки"/"Готові семпли"
+// instead of failing silently. "Готові семпли" stays fully client-side and keeps working.
 const importBtn = document.getElementById('importBtn');
 const importMenu = document.getElementById('importMenu');
 const importFileWrap = document.getElementById('importFileWrap');
@@ -1235,7 +1272,7 @@ document.addEventListener('click', (e)=>{
 importSingleBtn.addEventListener('click', (e)=>{
   e.stopPropagation();
   importMenu.classList.add('hiddenEl');
-  songTitleEl.innerHTML = 'Авто-розділення поки недоступне тут · спробуй «Останні треки» нижче';
+  showStatus('Авто-розділення поки недоступне тут · спробуй «Останні треки»', {duration:3500});
 });
 importStemsBtn.addEventListener('click', (e)=>{
   e.stopPropagation();
@@ -1243,14 +1280,14 @@ importStemsBtn.addEventListener('click', (e)=>{
   importStemsInput.click();
 });
 ytImportBtn.addEventListener('click', ()=>{
-  songTitleEl.innerHTML = 'YouTube-імпорт поки недоступний тут · спробуй «Останні треки» нижче';
+  showStatus('YouTube-імпорт поки недоступний тут · спробуй «Останні треки»', {duration:3500});
 });
 
 importStemsInput.addEventListener('change', async (e)=>{
   const files = e.target.files;
   if(!files || !files.length) return;
-  currentSongName = '4 семпли';
-  songTitleEl.innerHTML = `Розпаковка семплів…`;
+  currentSongName = 'семпли';
+  showStatus('Розпаковка семплів…', {autoHide:false});
   try{
     ensureAudioCtx();
     if(audioCtx.state === 'suspended') await audioCtx.resume();
@@ -1261,7 +1298,7 @@ importStemsInput.addEventListener('change', async (e)=>{
     setPlayIcon(true);
     trackNameEls.forEach(el=> el.textContent = el.textContent.replace(/·.*/, '· грає'));
   } catch(err){
-    songTitleEl.innerHTML = `Помилка завантаження семплів`;
+    showStatus('Помилка завантаження семплів', {duration:3500});
   }
   importStemsInput.value = '';
 });
@@ -1317,24 +1354,33 @@ document.addEventListener('click', (e)=>{
 });
 
 // ---------- Stem arms: radial VU-style dots + labels around the disc (bass/drums/other/vocals) ----------
+// Each dot's brightness/size AND its radial position pulse in time with that stem's own live
+// frequency data, and everything scales down together as you pull the gain puck away from that
+// stem's quadrant (weight -> 0), so a muted stem visibly "shrinks" rather than just dimming.
 const stemArmsEl = document.getElementById('stemArms');
 const ARM_ANGLES_DEG = [90, 0, 270, 180]; // matches gain-puck geometry: N=bass, E=drums, S=other, W=vocals
 const ARM_DOT_COUNT = 6;
 let armDotRefs = []; // [ [dot,dot,...], ... ] per stem
 let armLabelRefs = []; // label element per stem, used to drive --frac glow only (color is fixed white)
+let armDotBaseR = []; // base radius per dot (fixed layout distance), independent of live pulsing
+const armDotSmooth = []; // smoothed per-dot amplitude, avoids jittery motion frame to frame
 
 function buildStemArms(){
   stemArmsEl.innerHTML = '';
   armDotRefs = [];
   armLabelRefs = [];
+  armDotBaseR = [];
   for(let i=0;i<4;i++){
     const angleRad = ARM_ANGLES_DEG[i] * Math.PI/180;
     const dx = Math.cos(angleRad), dy = -Math.sin(angleRad); // screen-space (y flips)
     const color = WAVE_COLORS[i].top;
     const dots = [];
+    const baseRs = [];
+    armDotSmooth[i] = armDotSmooth[i] || new Float32Array(ARM_DOT_COUNT);
     for(let k=0; k<ARM_DOT_COUNT; k++){
       const frac = (k+1)/(ARM_DOT_COUNT+1.6); // spread from near-center to near-edge
       const r = frac * 46;
+      baseRs.push(r);
       const dot = document.createElement('div');
       dot.className = 'stemArmDot';
       dot.style.setProperty('--arm-color', color);
@@ -1344,6 +1390,7 @@ function buildStemArms(){
       dots.push(dot);
     }
     armDotRefs.push(dots);
+    armDotBaseR.push(baseRs);
 
     const label = document.createElement('div');
     label.className = 'stemArmLabel';
@@ -1357,15 +1404,43 @@ function buildStemArms(){
 }
 buildStemArms();
 
-function updateStemArms(){
+// Per-stem, per-dot amplitude: reads the stem's own analyser (a different frequency bin per
+// dot, so the arm reads like a little live spectrum), falling back to the same pseudo-spectrum
+// used before audio has loaded.
+function stemDotAmplitude(i, k, t){
+  if(audioLoaded && stemAnalysers[i]){
+    const data = analyserFreqData[i];
+    const idx = Math.min(Math.floor((k / ARM_DOT_COUNT) * data.length), data.length - 1);
+    return data[idx] / 255;
+  }
+  return pseudoSpectrum(i, t + k*0.35, (k * 7) % SEGMENTS);
+}
+
+function updateStemArms(t){
   for(let i=0;i<4;i++){
     const level = levelEnv[i];
+    // live gain weight from the puck (0..1) — physically ties dot size/position to the actual mix
+    const weight = stemGains[i] ? Math.max(0, Math.min(1, stemGains[i].gain.value)) : 1;
     const dots = armDotRefs[i];
+    const baseRs = armDotBaseR[i];
+    const sm = armDotSmooth[i];
+    const angleRad = ARM_ANGLES_DEG[i] * Math.PI/180;
+    const dx = Math.cos(angleRad), dy = -Math.sin(angleRad);
+
     for(let k=0;k<dots.length;k++){
-      const frac = Math.max(0, Math.min(1, level*dots.length - k));
+      const raw = stemDotAmplitude(i, k, t);
+      sm[k] += (raw - sm[k]) * 0.35; // smooth so motion looks physical, not twitchy
+
+      const frac = Math.max(0, Math.min(1, level*dots.length - k)) * weight;
       dots[k].style.setProperty('--frac', frac.toFixed(3));
+      dots[k].style.setProperty('--dot-scale', (0.55 + 0.85*sm[k]*weight).toFixed(3));
+
+      // radial pulse: dot breathes outward on its own frequency energy, scaled by mix weight
+      const r = baseRs[k] * (1 + 0.4*sm[k]*weight) * (0.4 + 0.6*weight);
+      dots[k].style.left = (50 + dx*r) + '%';
+      dots[k].style.top  = (50 + dy*r) + '%';
     }
-    if(armLabelRefs[i]) armLabelRefs[i].style.setProperty('--frac', Math.max(0,Math.min(1,level)).toFixed(3));
+    if(armLabelRefs[i]) armLabelRefs[i].style.setProperty('--frac', Math.max(0,Math.min(1,level*weight)).toFixed(3));
   }
 }
 
