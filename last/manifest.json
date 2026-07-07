@@ -1,4 +1,8 @@
 [
-  { "id": "song-1", "name": "Назва пісні 1" },
-  { "id": "song-2", "name": "Назва пісні 2" }
+  { "id": "song-1", "name": "Adele - Set Fire to the Rain" },
+  { "id": "song-2", "name": "DNCE - Cake By The Ocean" },
+  { "id": "song-3", "name": "OTOY, KLER - На двох" },
+  { "id": "song-4", "name": "Назва пісні 1" },
+  { "id": "song-5", "name": "Назва пісні 1" },
+  { "id": "song-6", "name": "Назва пісні 2" }
 ]
